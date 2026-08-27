@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aerocube Portal - Register</title>
+  <link rel="stylesheet" href="Login.css" /> 
+  <!-- Include Lucide Icons for the eye symbols -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Quick styling for the password toggle container */
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-wrapper input {
+      width: 100%;
+      padding-right: 40px; /* Make space for the eye icon */
+    }
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toggle-password:hover {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>AEROCUBE</h2>
+        <p>CREATE AN ACCOUNT</p>
+      </div>
+
+      <!-- Registration Form -->
+      <form id="form-register" class="auth-form">
+        <div class="form-group">
+          <label for="register-email">Email Address</label>
+          <input type="email" id="register-email" placeholder="admin@aerocube.io" required />
+        </div>
+
+        <div class="form-group">
+          <label for="register-password">Password (Exactly 6 characters)</label>
+          <div class="password-wrapper">
+            <input type="password" id="register-password" placeholder="Create a password" required minlength="6" maxlength="6" />
+            <button type="button" class="toggle-password" id="toggle-password-btn">
+              <i data-lucide="eye" id="eye-icon-1" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="register-confirm">Confirm Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="register-confirm" placeholder="Type password again" required minlength="6" maxlength="6" />
+            <button type="button" class="toggle-password" id="toggle-confirm-btn">
+              <i data-lucide="eye" id="eye-icon-2" style="width: 18px; height: 18px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Role Selection Dropdown -->
+        <div class="form-group">
+          <label for="register-role">Account Role</label>
+          <select id="register-role" required style="width: 100%; padding: 10px; background: #182232; border: 1px solid #233147; color: #fff; border-radius: 6px;">
+            <option value="" disabled selected>Select your access level</option>
+            <option value="viewer">Viewer (Viewing Only)</option>
+            <option value="admin">Admin (Full Access Control)</option>
+          </select>
+        </div>
+
+        <!-- Error messages will appear here -->
+        <div id="register-error" style="color: #ef4444; margin-bottom: 15px; font-size: 0.9em; text-align: center;"></div>
+
+        <button type="submit" id="btn-register-submit" class="btn-primary full-width">Sign Up</button>
+      </form>
+
+      <div class="auth-footer" style="margin-top: 20px; text-align: center;">
+        <p>Already have an account? <a href="Login.html">Sign In Here</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+  <script type="module" src="Registration.js"></script>
+</body>
+</html>

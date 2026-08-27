@@ -1,0 +1,570 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0b0f17;
+  color: #e2e8f0;
+  display: flex;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   DESKTOP & GENERAL SIDEBAR STYLES
+========================================================= */
+.sidebar {
+  width: 84px;
+  background-color: #111622;
+  border-right: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 10px 0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  width: 68px;
+}
+
+.nav-item:hover, .nav-item.active {
+  color: #ffffff;
+  background-color: #1a2333;
+}
+
+.nav-item.active {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 12px;
+}
+
+.sidebar-logo img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* Mobile Header Bar with Hamburger Toggle */
+.mobile-top-bar {
+  display: none;
+}
+
+/* Backdrop overlay when mobile sidebar is open */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+}
+
+/* =========================================================
+   MAIN CONTAINER & LAYOUT
+========================================================= */
+.app-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Top Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.badge-live {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.badge-status {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #94a3b8;
+}
+
+/* Grid Layouts */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background-color: #131a27;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* === DYNAMIC CONDITION BORDER STYLING === */
+.card.border-good {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
+.card.border-moderate {
+  border-color: #eab308 !important;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.15);
+}
+
+.card.border-critical {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+  animation: pulse-critical 2s infinite;
+}
+
+@keyframes pulse-critical {
+  0% { border-color: #ef4444; }
+  50% { border-color: rgba(239, 68, 68, 0.4); }
+  100% { border-color: #ef4444; }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #1a2436;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+}
+
+.card-value {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 16px 0 6px 0;
+  color: #ffffff;
+  min-height: 44px;
+}
+
+.card-value span {
+  font-size: 18px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.card-subtext {
+  font-size: 12px;
+  color: #64748b;
+  min-height: 15px;
+}
+
+/* PM Grid Card */
+.pm-card {
+  grid-column: span 1;
+}
+
+.pm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pm-box {
+  background-color: #182232;
+  border: 1px solid #233147;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.pm-box.highlight {
+  border-color: rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.05);
+}
+
+.pm-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.pm-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  min-height: 24px;
+}
+
+.pm-val span {
+  font-size: 11px;
+  font-weight: 400;
+  color: #64748b;
+}
+
+/* Control Center */
+.control-center {
+  background-color: #131a27;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.control-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.mode-toggle-group {
+  display: flex;
+  background: #0b0f17;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+}
+
+.mode-btn {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  background-color: #ffffff;
+  color: #0b0f17;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.control-item {
+  background-color: #182232;
+  border: 1px solid #233147;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.control-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-text .title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.control-text .status {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 2px;
+  min-height: 17px;
+}
+
+/* Switches */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #2a384e;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #10b981;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* Insights Section */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.insight-card {
+  background-color: #131a27;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.insight-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.insight-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.insight-desc p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN: MOBILE SIDEBAR DRAWER (< 768px)
+========================================================= */
+
+@media (max-width: 1024px) {
+  .metrics-grid, .controls-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+  }
+
+  /* Show mobile top bar with hamburger button */
+  .mobile-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background-color: #111622;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 998;
+  }
+
+  .menu-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  /* Transform sidebar into an off-screen slide-out drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    transform: translateX(-100%); /* Hidden by default off-screen */
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+    background-color: #111622;
+    align-items: flex-start;
+    padding: 24px 16px;
+  }
+
+  /* When active class is toggled via JS, slide it into view */
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Show backdrop when menu is open */
+  .sidebar-overlay.active {
+    display: block;
+  }
+
+  /* Realign sidebar contents vertically inside the mobile drawer */
+  .sidebar-top, .sidebar-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  /* Make nav items full width with horizontal alignment for readability */
+  .nav-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    width: 100%;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .metrics-grid, 
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroCube Settings</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="settings.css">
+    
+</head>
+<body>
+
+    <!-- Mobile Top Header Bar with Hamburger Button -->
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle">☰</button>
+    <span style="font-weight: 700; font-size: 16px;">AeroCube</span>
+  </div>
+
+  <!-- Backdrop Overlay (dims the background when mobile menu is open) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-top-group">
+        <div class="sidebar-logo">
+            <img src="logo/aerocube logo.png" alt="AeroCube Logo">
+        </div>
+        
+        <div class="nav-links" style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%;">
+          <a href="index.html" class="nav-item">
+            <i data-lucide="layout-grid"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="rooms.html" class="nav-item">
+            <i data-lucide="door-closed"></i>
+            <span>Rooms</span>
+          </a>
+          <a href="graph.html" class="nav-item">
+            <i data-lucide="line-chart"></i>
+            <span>Graph</span>
+          </a>
+          <a href="History.html" class="nav-item">
+            <i data-lucide="info"></i>
+            <span>History</span>
+          </a>
+          <a href="settings.html" class="nav-item active">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="sidebar-footer">
+        <a href="about.html" class="nav-item">
+          <i data-lucide="help-circle"></i>
+          <span>About</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Container -->
+    <div class="settings-wrapper">
+        <header class="header">
+            <h1>Settings</h1>
+            <div class="header-badges">
+                <span class="badge"><span class="dot"></span> LIVE SYNC</span>
+                <span class="badge">STATUS: GOOD</span>
+            </div>
+        </header>
+
+        <div class="layout-grid">
+            
+            <!-- LEFT COLUMN -->
+            <div class="column-left">
+                <!-- Recalibration Card -->
+                <div class="card">
+                    <h2>CO2 Recalibration 
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                    </h2>
+                    <p>Ensure accurate readings by performing a baseline recalibration. Calibrate in fresh outdoor air for at least 20 minutes before initiating.</p>
+                    <button class="btn-outline" id="btn-recal">
+                        <svg width="16" height="16" viewBox="0 0 24 24"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        Recalibrate Sensor
+                    </button>
+                </div>
+
+                <!-- Outlet Mapping Card -->
+                <div class="card">
+                    <h2>Outlet Mapping</h2>
+                    <p>Assign specific environmental sensors to trigger corresponding physical outlets.</p>
+                    
+                    <div class="mapping-item">
+                        <div class="mapping-header">
+                            CO2 Concentration
+                            <label class="toggle">
+                                <input type="checkbox" id="toggle-co2" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+                        <select id="select-co2">
+                            <option value="1">Assigned to: Outlet #1</option>
+                            <option value="2">Assigned to: Outlet #2</option>
+                        </select>
+                    </div>
+
+                    <div class="mapping-item">
+                        <div class="mapping-header">
+                            VOC Index
+                            <label class="toggle">
+                                <input type="checkbox" id="toggle-voc" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+                        <select id="select-voc">
+                            <option value="1">Assigned to: Outlet #1</option>
+                            <option value="2">Assigned to: Outlet #2</option>
+                        </select>
+                    </div>
+
+                    <div class="mapping-item">
+                        <div class="mapping-header">
+                            PM2.5 Particulates
+                            <label class="toggle">
+                                <input type="checkbox" id="toggle-pm" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+                        <select id="select-pm">
+                            <option value="1">Assigned to: Outlet #1</option>
+                            <option value="2">Assigned to: Outlet #2</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="card">
+                <h2>Automation Thresholds 
+                    <svg width="20" height="20" viewBox="0 0 24 24" style="background:#1C2026; padding:4px; border-radius:4px;"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+                </h2>
+                <p>Define the exact environmental conditions required to automatically activate your connected hardware modules.</p>
+                
+                <div class="threshold-grid">
+                    
+                    <!-- CO2 Threshold -->
+                    <div class="threshold-card">
+                        <div class="t-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            CO2 Concentration
+                        </div>
+                        <div class="t-value" id="val-co2">910 <span>ppm</span></div>
+                        <p class="t-desc">Triggers Outlet #1 when Carbon Dioxide exceeds this limit.</p>
+                        <div class="slider-labels"><span>400 (Fresh)</span><span>2000 (Warning)</span></div>
+                        <input type="range" id="slider-co2" min="400" max="2000" value="910">
+                    </div>
+
+                    <!-- VOC Threshold -->
+                    <div class="threshold-card">
+                        <div class="t-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+                            VOC Index
+                        </div>
+                        <div class="t-value" id="val-voc">382 <span>idx</span></div>
+                        <p class="t-desc">Triggers Outlet #2 when Volatile Organic Compounds rise.</p>
+                        <div class="slider-labels"><span>0 (Clean)</span><span>500 (Poor)</span></div>
+                        <input type="range" id="slider-voc" min="0" max="500" value="382">
+                    </div>
+
+                    <!-- PM2.5 Threshold -->
+                    <div class="threshold-card">
+                        <div class="t-title">
+                            <svg width="14" height="14" viewBox="0 0 24 24"><path d="M4 4h.01M8 4h.01M12 4h.01M16 4h.01M4 8h.01M8 8h.01M12 8h.01M16 8h.01M4 12h.01M8 12h.01M12 12h.01M16 12h.01"/></svg>
+                            PM2.5 Particulates
+                        </div>
+                        <div class="t-value" id="val-pm">15 <span>µg/m³</span></div>
+                        <p class="t-desc">Threshold for fine particulate matter. Currently unassigned.</p>
+                        <div class="slider-labels"><span>0</span><span>100</span></div>
+                        <input type="range" id="slider-pm" min="0" max="100" value="15">
+                    </div>
+
+                </div>
+
+                <div class="save-footer">
+                    <button class="btn-solid" id="btn-save">Save Configuration ✓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>lucide.createIcons();</script>
+    <!-- Link to external JavaScript file -->
+    <script type="module" src="settings.js"></script>
+    
+</body>
+</html>
