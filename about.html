@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AeroCube | About</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="about.css" />
+</head>
+<body>
+
+  <!-- Mobile Top Header Bar with Hamburger Button -->
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle">☰</button>
+    <span style="font-weight: 700; font-size: 16px;">AeroCube</span>
+  </div>
+
+  <!-- Backdrop Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+      </div>
+      
+      <div class="nav-links">
+        <a href="index.html" class="nav-item">
+          <i data-lucide="layout-grid"></i>
+          <span>Dashboard</span>
+        </a>
+       
+        <a href="graph.html" class="nav-item">
+          <i data-lucide="line-chart"></i>
+          <span>Graph</span>
+        </a>
+        <a href="History.html" class="nav-item">
+          <i data-lucide="info"></i>
+          <span>History</span>
+        </a>
+        <a href="settings.html" class="nav-item">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <a href="about.html" class="nav-item active">
+        <i data-lucide="help-circle"></i>
+        <span>About</span>
+      </a>
+      <a href="#" id="btn-logout" class="nav-item" style="color: #ef4444;">
+        <i data-lucide="log-out"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Header -->
+    <header class="header">
+      <div class="header-title">
+        <h1>About AeroCube</h1>
+      </div>
+      <div class="header-badges">
+        <div class="badge badge-status" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;">
+          <span>SYSTEM v1.0.0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- About Content Section -->
+    <section class="about-grid">
+      
+      <!-- Project Overview Card -->
+      <div class="card about-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="info"></i></div>
+          PROJECT OVERVIEW
+        </div>
+        <div class="about-body">
+          <h2>Smart Indoor Air Quality Monitor & Automator</h2>
+          <p>
+            AeroCube is an advanced IoT environmental monitoring system designed to track indoor air quality metrics in real-time. 
+            By utilizing industrial-grade sensors, it measures CO2 levels, Volatile Organic Compounds (VOCs), and Particulate Matter (PM1.0 to PM10.0). 
+            Coupled with automated smart outlets (AeroPlugs), the system intelligently mitigates poor air quality by triggering external ventilation and filtration systems automatically.
+          </p>
+        </div>
+      </div>
+
+      <!-- Hardware Specs Card -->
+      <div class="card about-card">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="cpu"></i></div>
+          HARDWARE ARCHITECTURE
+        </div>
+        <div class="about-body">
+          <ul class="spec-list">
+            <li><strong>Microcontroller:</strong> ESP32 (Wi-Fi & ESP-NOW enabled)</li>
+            <li><strong>CO2 / Temp / Humidity:</strong> Sensirion SCD41 (Photoacoustic NDIR)</li>
+            <li><strong>VOC Index:</strong> Sensirion SGP40</li>
+            <li><strong>Particulate Matter:</strong> Sensirion SPS30 (Laser Scattering)</li>
+            <li><strong>Display:</strong> 2.4" TFT LCD (ST7789)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Software Specs Card -->
+      <div class="card about-card">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="code-2"></i></div>
+          SOFTWARE STACK
+        </div>
+        <div class="about-body">
+          <ul class="spec-list">
+            <li><strong>Backend / Database:</strong> Firebase Realtime Database</li>
+            <li><strong>Firmware Environment:</strong> Arduino IDE / C++</li>
+            <li><strong>Local Communication:</strong> ESP-NOW Protocol (AeroPlug Relays)</li>
+            <li><strong>Frontend Dashboard:</strong> HTML5, CSS3, Vanilla JavaScript</li>
+            <li><strong>Iconography:</strong> Lucide Icons</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+    
+      <!-- Development Team Section -->
+      <div class="card team-section" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="users"></i></div>
+          AEROCUBE DEVELOPMENT TEAM
+        </div>
+        <div class="team-grid">
+
+          <!-- Mark Daniel Quinot -->
+          <div class="team-card">
+            <div class="member-avatar">
+              <img src="images/quinot.jpg" alt="Mark Daniel Quinot" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Mark+Daniel+Quinot&background=1e293b&color=34d399&size=128';">
+            </div>
+            <h3 class="member-name">Mark Daniel Quinot</h3>
+            <span class="member-role role-backend">System Admin / Backend Developer Team Leader</span>
+          </div>
+
+          <!-- Lanz Joshua Dequillo -->
+          <div class="team-card">
+            <div class="member-avatar">
+              <img src="images/deq.jpg" alt="Lanz Joshua Dequillo" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Lanz+Joshua+Dequillo&background=1e293b&color=34d399&size=128';">
+            </div>
+            <h3 class="member-name">Lanz Joshua Dequillo</h3>
+            <span class="member-role role-frontend">Frontend Developer</span>
+          </div>
+
+          <!-- Alyza Cañete -->
+          <div class="team-card">
+            <div class="member-avatar">
+              <img src="images/canete.jpg" alt="Alyza Cañete" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Alyza+Canete&background=1e293b&color=c084fc&size=128';">
+            </div>
+            <h3 class="member-name">Alyza Cañete</h3>
+            <span class="member-role role-doc">Documentation</span>
+          </div>
+
+          <!-- Trisha Gerona -->
+          <div class="team-card">
+            <div class="member-avatar">
+              <img src="images/gerona.jpg" alt="Trisha Gerona" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Trisha+Gerona&background=1e293b&color=c084fc&size=128';">
+            </div>
+            <h3 class="member-name">Trisha Gerona</h3>
+            <span class="member-role role-doc">Documentation</span>
+          </div>
+
+          <!-- John Euvir Polido -->
+          <div class="team-card">
+            <div class="member-avatar">
+              <img src="images/Euvir.jpg" alt="John Euvir Polido" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=John+Euvir+Polido&background=1e293b&color=c084fc&size=128';">
+            </div>
+            <h3 class="member-name">John Euvir Polido</h3>
+            <span class="member-role role-doc">Documentation</span>
+          </div>
+
+        </div>
+      </div>
+
+  </main>
+
+  <script src="about.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AeroCube | Data History</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle" aria-label="Toggle Navigation Menu">
+      <i data-lucide="menu"></i>
+    </button>
+    <span style="font-weight: 700; font-size: 16px;">AeroCube History</span>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+      </div>
+      
+      <div class="nav-links">
+        <a href="index.html" class="nav-item">
+          <i data-lucide="layout-grid"></i>
+          <span>Dashboard</span>
+        </a>
+       
+        <a href="graph.html" class="nav-item">
+          <i data-lucide="line-chart"></i>
+          <span>Graph</span>
+        </a>
+        <a href="History.html" class="nav-item active">
+          <i data-lucide="clock"></i>
+          <span>History</span>
+        </a>
+        <a href="settings.html" class="nav-item">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </a>
+        
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <a href="about.html" class="nav-item">
+        <i data-lucide="help-circle"></i>
+        <span>About</span>
+      </a>
+      <a href="#" id="btn-logout" class="nav-item" style="color: #ef4444;">
+        <i data-lucide="log-out"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="header-title">
+        <h1>Historical Data Logs</h1>
+      </div>
+      <div class="header-badges">
+        <button id="btn-clear-history" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">
+          Clear History
+        </button>
+      </div>
+    </header>
+
+    <div class="card" style="width: 100%;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="card-icon"><i data-lucide="history"></i></div>
+          <span>SYSTEM READINGS LOG</span>
+        </div>
+      </div>
+      
+      <div id="history-table-container" style="overflow-x: auto; width: 100%;">
+        <p style="color: #94a3b8; font-size: 14px;">Loading recorded logs from Firebase...</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="history.js"></script>
+</body>
+</html>
