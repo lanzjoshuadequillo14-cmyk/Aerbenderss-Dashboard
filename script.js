@@ -69,13 +69,11 @@ onAuthStateChanged(auth, async (user) => {
       console.error("Error checking user role:", err);
     }
   } else {
-    // If no user is logged in, redirect them back to the login/registration page
     window.location.href = 'Registration.html';
   }
 });
 
 function lockControlsForViewer() {
-  // Add a visual "VIEWER MODE" indicator badge to the header
   const headerTitle = document.querySelector('.header-title');
   if (headerTitle) {
     const badge = document.createElement('div');
@@ -92,7 +90,6 @@ function lockControlsForViewer() {
     headerTitle.appendChild(badge);
   }
 
-  // Visually dim the control section slightly to signify it's locked
   const controlCenter = document.querySelector('.control-center');
   if (controlCenter) {
     controlCenter.style.opacity = '0.8';
@@ -114,7 +111,7 @@ if (btnLogout) {
 
 // Helper function for PM threshold updates
 function updatePmBox(pmElement, value, moderateThreshold, criticalThreshold) {
-    if (value === undefined) return; 
+    if (value === undefined || !pmElement) return; 
     
     pmElement.innerHTML = `${value} <span>µg/m³</span>`;
     
@@ -154,18 +151,18 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
   if (!data) return; 
 
   // --- UPDATE METRICS UI ---
-  if (data.temp !== undefined) {
+  if (data.temp !== undefined && valTemp) {
     valTemp.innerHTML = `${data.temp} <span>°C</span>`;
-    subTemp.innerText = `Live reading`;
+    if (subTemp) subTemp.innerText = `Live reading`;
   }
-  if (data.humidity !== undefined) {
+  if (data.humidity !== undefined && valHumidity) {
     valHumidity.innerHTML = `${data.humidity} <span>%</span>`;
-    subHumidity.innerText = `Live reading`;
+    if (subHumidity) subHumidity.innerText = `Live reading`;
   }
-  if (data.co2 !== undefined) {
+  if (data.co2 !== undefined && valCo2) {
     valCo2.innerHTML = `${data.co2} <span>ppm</span>`;
   }
-  if (data.VOCidx !== undefined) {
+  if (data.VOCidx !== undefined && valVoc) {
     valVoc.innerText = data.VOCidx;
     valVoc.style.color = data.VOCidx >= 250 ? '#ef4444' : data.VOCidx >= 150 ? '#eab308' : '#ffffff';
   }
@@ -177,101 +174,74 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
     updatePmBox(valPm100, data.pm.pm10p0, 50, 100); 
   }
 
-  // --- PRECISE INDIVIDUAL INSIGHTS & RECOMMENDATIONS ---
+  // --- GENERALIZED (HARDWARE-AGNOSTIC) INSIGHTS & RECOMMENDATIONS ---
   let insights = [];
   let recs = [];
 
-  if (data.temp !== undefined) {
-      if (data.temp >= 32) {
-          insights.push(`<strong>Temperature:</strong> Critically high (${data.temp}°C). Thermal stress conditions.`);
-          recs.push(`<strong>Temperature:</strong> Engage active cooling systems or AC units immediately.`);
-      } else if (data.temp >= 28) {
-          insights.push(`<strong>Temperature:</strong> Moderate heat buildup (${data.temp}°C).`);
-          recs.push(`<strong>Temperature:</strong> Increase ambient circulation fans to reduce heat density.`);
-      } else if (data.temp <= 18) {
-          insights.push(`<strong>Temperature:</strong> Below optimal range (${data.temp}°C).`);
-          recs.push(`<strong>Temperature:</strong> Reduce cold air intake or activate heating elements.`);
+  // A. Carbon Dioxide (CO2)
+  if (data.co2 !== undefined) {
+      if (data.co2 >= 1000) {
+          insights.push(`<strong>Carbon Dioxide (CO2):</strong> The room is poorly ventilated. Carbon dioxide is building up, which commonly causes drowsiness, headaches, and reduced focus.`);
+          recs.push(`<strong>Carbon Dioxide (CO2):</strong> Increase natural airflow by opening windows and doors (if outdoor air is clean). If the room has a high occupancy, consider reducing the number of people inside or taking a 10-minute fresh air break.`);
       } else {
-          insights.push(`<strong>Temperature:</strong> Optimal thermal range (${data.temp}°C).`);
-          recs.push(`<strong>Temperature:</strong> Maintain standard HVAC thermal settings.`);
+          insights.push(`<strong>Carbon Dioxide (CO2):</strong> Ventilation is excellent. The current airflow is sufficient for the number of people in the room.`);
+          recs.push(`<strong>Carbon Dioxide (CO2):</strong> Keep the current ventilation setup. If windows are open, you may close them to conserve energy if weather conditions change.`);
       }
   }
 
+  // B. Particulate Matter (PM)
+  if (data.pm) {
+      const isHighPm = (data.pm.pm1p0 >= 35 || data.pm.pm2p5 >= 35 || data.pm.pm4p0 >= 35 || data.pm.pm10p0 >= 50);
+      if (isHighPm) {
+          insights.push(`<strong>Particulate Matter (PM):</strong> Fine particle pollution is currently elevated. This is often caused by outdoor traffic, smoke, burning, or indoor activities like sweeping or dusty fabrics.`);
+          recs.push(`<strong>Particulate Matter (PM):</strong> Check if the source is indoors (e.g., stop sweeping/vacuuming, extinguish candles/incense) or outdoors (e.g., close windows to block traffic smoke). If you are sensitive to dust, wearing a face mask (e.g., N95) may help.`);
+      } else {
+          insights.push(`<strong>Particulate Matter (PM):</strong> The air is clear of fine dust and smoke particles. Respiratory conditions are currently safe.`);
+          recs.push(`<strong>Particulate Matter (PM):</strong> No changes needed. Continue standard cleaning routines.`);
+      }
+  }
+
+  // C. Volatile Organic Compounds (VOC)
+  if (data.VOCidx !== undefined) {
+      if (data.VOCidx >= 150) {
+          insights.push(`<strong>Volatile Organic Compounds (VOC):</strong> High levels of chemical gases or strong odors detected. This can cause eye, nose, or throat irritation.`);
+          recs.push(`<strong>Volatile Organic Compounds (VOC):</strong> Locate and remove the source (e.g., seal containers of paint or cleaning products, stop using air fresheners or sprays). Increase airflow by opening windows to dilute the gases. If the odor is strong, step outside until levels return to normal.`);
+      } else {
+          insights.push(`<strong>Volatile Organic Compounds (VOC):</strong> Chemical gas levels are low. No significant off-gassing from paints, cleaning agents, or sprays detected.`);
+          recs.push(`<strong>Volatile Organic Compounds (VOC):</strong> No action required. Continue using chemicals in well-ventilated areas.`);
+      }
+  }
+
+  // D. Temperature (Generalized)
+  if (data.temp !== undefined) {
+      if (data.temp >= 30) {
+          insights.push(`<strong>Temperature:</strong> Elevated heat level (${data.temp}°C). High ambient temperature can lead to fatigue or discomfort.`);
+          recs.push(`<strong>Temperature:</strong> Adjust window shades or blinds to block direct sunlight and increase cross-ventilation.`);
+      } else if (data.temp <= 18) {
+          insights.push(`<strong>Temperature:</strong> Low ambient temperature (${data.temp}°C).`);
+          recs.push(`<strong>Temperature:</strong> Close open drafts or windows to retain natural room heat.`);
+      }
+  }
+
+  // E. Humidity (Generalized)
   if (data.humidity !== undefined) {
       if (data.humidity >= 70) {
-          insights.push(`<strong>Humidity:</strong> High air moisture content (${data.humidity}%). Mold risk.`);
-          recs.push(`<strong>Humidity:</strong> Activate dehumidifier or cycle dry air exhaust fans.`);
+          insights.push(`<strong>Humidity:</strong> High air moisture detected (${data.humidity}%). Excess moisture promotes mugginess and mold growth.`);
+          recs.push(`<strong>Humidity:</strong> Improve natural airflow across moist areas and clear standing water.`);
       } else if (data.humidity <= 30) {
           insights.push(`<strong>Humidity:</strong> Dry atmospheric conditions (${data.humidity}%).`);
-          recs.push(`<strong>Humidity:</strong> Operate humidifiers to prevent respiratory dryness.`);
-      } else {
-          insights.push(`<strong>Humidity:</strong> Balanced air moisture level (${data.humidity}%).`);
-          recs.push(`<strong>Humidity:</strong> No humidity conditioning needed.`);
+          recs.push(`<strong>Humidity:</strong> Keep doors closed to maintain indoor moisture balance.`);
       }
   }
 
-  if (data.co2 !== undefined) {
-      if (data.co2 >= 1500) {
-          insights.push(`<strong>CO2:</strong> Severe gas buildup (${data.co2} ppm). Stale oxygen environment.`);
-          recs.push(`<strong>CO2:</strong> Open fresh air vents or main windows immediately.`);
-      } else if (data.co2 >= 1000) {
-          insights.push(`<strong>CO2:</strong> Elevated concentration (${data.co2} ppm). Low air exchange rate.`);
-          recs.push(`<strong>CO2:</strong> Increase general fresh air exchange and intake rates.`);
-      } else {
-          insights.push(`<strong>CO2:</strong> Optimal fresh air levels (${data.co2} ppm).`);
-          recs.push(`<strong>CO2:</strong> Standby mode—air ventilation balance is sufficient.`);
-      }
-  }
-
-  if (data.VOCidx !== undefined) {
-      if (data.VOCidx >= 250) {
-          insights.push(`<strong>VOC:</strong> Critical chemical vapor index (${data.VOCidx} idx). High off-gassing.`);
-          recs.push(`<strong>VOC:</strong> Isolate chemical sources, solvents, or paints immediately.`);
-      } else if (data.VOCidx >= 150) {
-          insights.push(`<strong>VOC:</strong> Moderate chemical gas presence (${data.VOCidx} idx).`);
-          recs.push(`<strong>VOC:</strong> Check and seal volatile containers or open solvents.`);
-      } else {
-          insights.push(`<strong>VOC:</strong> Minimal chemical vapors (${data.VOCidx} idx). Safe gas levels.`);
-          recs.push(`<strong>VOC:</strong> No chemical mitigation required.`);
-      }
-  }
-
-  if (data.pm) {
-      let pmIssues = [];
-      let pmActions = [];
-
-      if (data.pm.pm1p0 >= 35) {
-          pmIssues.push(`PM1.0 high combustion load`);
-          pmActions.push(`run HEPA filtration at maximum`);
-      }
-      if (data.pm.pm2p5 >= 35) {
-          pmIssues.push(`PM2.5 elevated fine dust/smoke`);
-          pmActions.push(`activate smoke filtration`);
-      }
-      if (data.pm.pm4p0 >= 35) {
-          pmIssues.push(`PM4.0 environmental dust load detected`);
-          pmActions.push(`clean primary intake pre-filters`);
-      }
-      if (data.pm.pm10p0 >= 50) {
-          pmIssues.push(`PM10 coarse dust/pollen buildup`);
-          pmActions.push(`seal exterior intake dampers`);
-      }
-
-      if (pmIssues.length > 0) {
-          insights.push(`<strong>PM:</strong> ${pmIssues.join('; ')}.`);
-          recs.push(`<strong>PM:</strong> ${pmActions.join('; ')}.`);
-      } else {
-          insights.push(`<strong>PM:</strong> Clean particle readings across all metrics (PM 1.0 - PM 10).`);
-          recs.push(`<strong>PM:</strong> Maintain normal background air filtration levels.`);
-      }
-  }
-
+  // Render Insights and Recommendations to DOM
   if (insightText && recommendationText) {
-    const listStyle = "display: flex; flex-direction: column; gap: 0.5rem; color: #94a3b8; font-size: 0.88rem; line-height: 1.4;";
+    const listStyle = "display: flex; flex-direction: column; gap: 0.75rem; color: #94a3b8; font-size: 0.88rem; line-height: 1.5;";
     insightText.innerHTML = `<div style="${listStyle}">${insights.map(i => `<div>${i}</div>`).join('')}</div>`;
     recommendationText.innerHTML = `<div style="${listStyle}">${recs.map(r => `<div>${r}</div>`).join('')}</div>`;
   }
 
+  // Air Quality Status Check
   let status = (data.airQualityStatus || 'NORMAL').toUpperCase();
   if (!data.airQualityStatus) {
       if (data.co2 >= 1500 || data.VOCidx >= 250 || (data.pm && data.pm.pm2p5 >= 55)) status = 'CRITICAL';
@@ -302,7 +272,6 @@ onValue(ref(db, `${BASE_PATH}/controls`), (snapshot) => {
   const controls = snapshot.val();
   if (!controls) return;
 
-  // STRICT ENFORCEMENT: If viewer, lock out controls completely regardless of database state
   if (isViewerUser) {
     if (btnAuto) btnAuto.disabled = true;
     if (btnManual) btnManual.disabled = true;
@@ -310,20 +279,19 @@ onValue(ref(db, `${BASE_PATH}/controls`), (snapshot) => {
     if (switchRelay2) switchRelay2.disabled = true;
     if (switchSilent) switchSilent.disabled = true;
   } else {
-    // Admin user gets standard hardware interaction rules
     if(switchRelay1) switchRelay1.disabled = false;
     if(switchRelay2) switchRelay2.disabled = false;
     if(switchSilent) switchSilent.disabled = false;
 
     if (controls.isAutoMode !== undefined) {
       if (controls.isAutoMode) {
-        btnAuto.classList.add('active');
-        btnManual.classList.remove('active');
+        if(btnAuto) btnAuto.classList.add('active');
+        if(btnManual) btnManual.classList.remove('active');
         if(switchRelay1) switchRelay1.disabled = true;
         if(switchRelay2) switchRelay2.disabled = true;
       } else {
-        btnManual.classList.add('active');
-        btnAuto.classList.remove('active');
+        if(btnManual) btnManual.classList.add('active');
+        if(btnAuto) btnAuto.classList.remove('active');
         if(switchRelay1) switchRelay1.disabled = false;
         if(switchRelay2) switchRelay2.disabled = false;
       }
@@ -361,14 +329,14 @@ if(switchRelay1) switchRelay1.addEventListener('change', (e) => updateControls({
 if(switchRelay2) switchRelay2.addEventListener('change', (e) => updateControls({ manualRelay2: e.target.checked }));
 if(switchSilent) switchSilent.addEventListener('change', (e) => updateControls({ isBuzzerSilenced: e.target.checked }));
 
-// humberger menu toggle for mobile view
+// Mobile Menu Toggle
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
 const overlay = document.getElementById('sidebarOverlay');
 
 function toggleMenu() {
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('active');
+  if(sidebar) sidebar.classList.toggle('open');
+  if(overlay) overlay.classList.toggle('active');
 }
 
 if (menuToggle && sidebar && overlay) {
