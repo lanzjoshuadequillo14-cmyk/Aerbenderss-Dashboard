@@ -174,63 +174,69 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
     updatePmBox(valPm100, data.pm.pm10p0, 50, 100); 
   }
 
-  // --- GENERALIZED (HARDWARE-AGNOSTIC) INSIGHTS & RECOMMENDATIONS ---
+  // --- CLEAR, UNDERSTANDABLE INSIGHTS & RECOMMENDATIONS ---
   let insights = [];
   let recs = [];
 
-  // A. Carbon Dioxide (CO2)
-  if (data.co2 !== undefined) {
-      if (data.co2 >= 1000) {
-          insights.push(`<strong>Carbon Dioxide (CO2):</strong> The room is poorly ventilated. Carbon dioxide is building up, which commonly causes drowsiness, headaches, and reduced focus.`);
-          recs.push(`<strong>Carbon Dioxide (CO2):</strong> Increase natural airflow by opening windows and doors (if outdoor air is clean). If the room has a high occupancy, consider reducing the number of people inside or taking a 10-minute fresh air break.`);
+  // A. Temperature
+  if (data.temp !== undefined) {
+      if (data.temp >= 30) {
+          insights.push(`<strong>Temperature:</strong> The room is very hot (${data.temp}°C), which can make you feel tired or uncomfortable.`);
+          recs.push(`<strong>Temperature:</strong> Turn on a fan, open a window to let a breeze in, or use an air conditioner if you have one.`);
+      } else if (data.temp <= 18) {
+          insights.push(`<strong>Temperature:</strong> The room is quite cold (${data.temp}°C).`);
+          recs.push(`<strong>Temperature:</strong> Close open windows to keep the warmth inside, or turn on a heater.`);
       } else {
-          insights.push(`<strong>Carbon Dioxide (CO2):</strong> Ventilation is excellent. The current airflow is sufficient for the number of people in the room.`);
-          recs.push(`<strong>Carbon Dioxide (CO2):</strong> Keep the current ventilation setup. If windows are open, you may close them to conserve energy if weather conditions change.`);
+          insights.push(`<strong>Temperature:</strong> The room temperature is comfortable and safe.`);
+          recs.push(`<strong>Temperature:</strong> No action needed.`);
       }
   }
 
-  // B. Particulate Matter (PM)
+  // B. Humidity
+  if (data.humidity !== undefined) {
+      if (data.humidity >= 70) {
+          insights.push(`<strong>Humidity:</strong> The air is very damp (${data.humidity}%). This can feel muggy and might cause mold to grow on walls or fabrics.`);
+          recs.push(`<strong>Humidity:</strong> Open windows to improve airflow, or turn on an exhaust fan or dehumidifier to dry the air.`);
+      } else if (data.humidity <= 30) {
+          insights.push(`<strong>Humidity:</strong> The air is very dry (${data.humidity}%), which can dry out your skin, eyes, and throat.`);
+          recs.push(`<strong>Humidity:</strong> Consider using a humidifier or placing a bowl of water in the room to add moisture back into the air.`);
+      } else {
+          insights.push(`<strong>Humidity:</strong> The moisture level in the air is well-balanced.`);
+          recs.push(`<strong>Humidity:</strong> No action needed.`);
+      }
+  }
+
+  // C. Carbon Dioxide (CO2)
+  if (data.co2 !== undefined) {
+      if (data.co2 >= 1000) {
+          insights.push(`<strong>Air Freshness (CO2):</strong> The room is getting stuffy (${data.co2} ppm). Breathing in stale air can cause headaches, sleepiness, and make it hard to focus.`);
+          recs.push(`<strong>Air Freshness (CO2):</strong> Open doors and windows to let fresh air inside. If there are many people in the room, consider taking a short break outside.`);
+      } else {
+          insights.push(`<strong>Air Freshness (CO2):</strong> The air is fresh and well-ventilated.`);
+          recs.push(`<strong>Air Freshness (CO2):</strong> Keep the room properly ventilated as it currently is.`);
+      }
+  }
+
+  // D. Volatile Organic Compounds (VOC)
+  if (data.VOCidx !== undefined) {
+      if (data.VOCidx >= 150) {
+          insights.push(`<strong>Odors & Chemicals (VOC):</strong> Strong smells or chemicals are detected in the air. This can irritate your eyes, nose, and throat.`);
+          recs.push(`<strong>Odors & Chemicals (VOC):</strong> Find the source (like open paint cans, strong perfumes, or cleaning sprays) and close it. Open windows immediately to clear the air out.`);
+      } else {
+          insights.push(`<strong>Odors & Chemicals (VOC):</strong> Chemical and odor levels are low and safe.`);
+          recs.push(`<strong>Odors & Chemicals (VOC):</strong> No action needed. Continue using household products safely.`);
+      }
+  }
+
+  // E. Particulate Matter (Dust & Smoke)
   if (data.pm) {
       const isHighPm = (data.pm.pm1p0 >= 35 || data.pm.pm2p5 >= 35 || data.pm.pm4p0 >= 35 || data.pm.pm10p0 >= 50);
       if (isHighPm) {
-          insights.push(`<strong>Particulate Matter (PM):</strong> Fine particle pollution is currently elevated. This is often caused by outdoor traffic, smoke, burning, or indoor activities like sweeping or dusty fabrics.`);
-          recs.push(`<strong>Particulate Matter (PM):</strong> Check if the source is indoors (e.g., stop sweeping/vacuuming, extinguish candles/incense) or outdoors (e.g., close windows to block traffic smoke). If you are sensitive to dust, wearing a face mask (e.g., N95) may help.`);
+          insights.push(`<strong>Particulate Matter (PM):</strong> There is a high amount of fine dust or smoke floating in the air. This is unhealthy to breathe in.`);
+          recs.push(`<strong>Particulate Matter (PM):</strong> Stop activities that create dust, like sweeping. If the smoke is coming from outside (like traffic or burning leaves), close your windows. Consider wearing a mask if you are sensitive to dust.`);
       } else {
-          insights.push(`<strong>Particulate Matter (PM):</strong> The air is clear of fine dust and smoke particles. Respiratory conditions are currently safe.`);
-          recs.push(`<strong>Particulate Matter (PM):</strong> No changes needed. Continue standard cleaning routines.`);
-      }
-  }
-
-  // C. Volatile Organic Compounds (VOC)
-  if (data.VOCidx !== undefined) {
-      if (data.VOCidx >= 150) {
-          insights.push(`<strong>Volatile Organic Compounds (VOC):</strong> High levels of chemical gases or strong odors detected. This can cause eye, nose, or throat irritation.`);
-          recs.push(`<strong>Volatile Organic Compounds (VOC):</strong> Locate and remove the source (e.g., seal containers of paint or cleaning products, stop using air fresheners or sprays). Increase airflow by opening windows to dilute the gases. If the odor is strong, step outside until levels return to normal.`);
-      } else {
-          insights.push(`<strong>Volatile Organic Compounds (VOC):</strong> Chemical gas levels are low. No significant off-gassing from paints, cleaning agents, or sprays detected.`);
-          recs.push(`<strong>Volatile Organic Compounds (VOC):</strong> No action required. Continue using chemicals in well-ventilated areas.`);
-      }
-  }
-
-  // D. Temperature (Generalized)
-  if (data.temp !== undefined) {
-      if (data.temp >= 30) {
-          insights.push(`<strong>Temperature:</strong> Elevated heat level (${data.temp}°C). High ambient temperature can lead to fatigue or discomfort.`);
-          recs.push(`<strong>Temperature:</strong> Adjust window shades or blinds to block direct sunlight and increase cross-ventilation.`);
-      } else if (data.temp <= 18) {
-          insights.push(`<strong>Temperature:</strong> Low ambient temperature (${data.temp}°C).`);
-          recs.push(`<strong>Temperature:</strong> Close open drafts or windows to retain natural room heat.`);
-      }
-  }
-
-  // E. Humidity (Generalized)
-  if (data.humidity !== undefined) {
-      if (data.humidity >= 70) {
-          insights.push(`<strong>Humidity:</strong> High air moisture detected (${data.humidity}%). Excess moisture promotes mugginess and mold growth.`);
-          recs.push(`<strong>Humidity:</strong> Improve natural airflow across moist areas and clear standing water.`);
-      } else if (data.humidity <= 30) {
-          insights.push(`<strong>Humidity:</strong> Dry atmospheric conditions (${data.humidity}%).`);
-          recs.push(`<strong>Humidity:</strong> Keep doors closed to maintain indoor moisture balance.`);
+          insights.push(`<strong>Particulate Matter (PM):</strong> The air is clear of heavy dust and smoke particles.`);
+          recs.push(`<strong>Particulate Matter (PM):</strong> No action needed.`);
       }
   }
 
@@ -329,14 +335,14 @@ if(switchRelay1) switchRelay1.addEventListener('change', (e) => updateControls({
 if(switchRelay2) switchRelay2.addEventListener('change', (e) => updateControls({ manualRelay2: e.target.checked }));
 if(switchSilent) switchSilent.addEventListener('change', (e) => updateControls({ isBuzzerSilenced: e.target.checked }));
 
-// Mobile Menu Toggle
+// humberger menu toggle for mobile view
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
 const overlay = document.getElementById('sidebarOverlay');
 
 function toggleMenu() {
-  if(sidebar) sidebar.classList.toggle('open');
-  if(overlay) overlay.classList.toggle('active');
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('active');
 }
 
 if (menuToggle && sidebar && overlay) {
