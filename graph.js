@@ -17,14 +17,11 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-let aerocubeChartInstance = null;
+const chartInstances = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  if (window.lucide) { lucide.createIcons(); }
 
-  // Hamburger drawer open/close hooks
   const menuToggleBtn = document.getElementById('menuToggleBtn');
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -40,21 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Authentication Guard & Admin UI check
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     try {
       const userRef = ref(db, 'users/' + user.uid);
       const snapshot = await get(userRef);
-      
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        if (userData.role === 'admin') {
-          const navAdmin = document.getElementById('nav-admin');
-          const btnClear = document.getElementById('btn-clear-history');
-          if (navAdmin) navAdmin.style.display = 'block';
-          if (btnClear) btnClear.style.display = 'inline-block';
-        }
+      if (snapshot.exists() && snapshot.val().role === 'admin') {
+        const btnClear = document.getElementById('btn-clear-history');
+        if (btnClear) btnClear.style.display = 'inline-block';
       }
       loadHistoryAndGraphData();
     } catch (err) {
@@ -65,17 +55,13 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// Helper function to extract explicit timestamps or derive from Firebase push IDs
 function getTimestampFromPushId(pushId) {
   const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
   let time = 0;
-  for (let i = 0; i < 8; i++) {
-    time = (time * 64) + PUSH_CHARS.indexOf(pushId.charAt(i));
-  }
+  for (let i = 0; i < 8; i++) { time = (time * 64) + PUSH_CHARS.indexOf(pushId.charAt(i)); }
   return time;
 }
 
-// Main data fetch handler tracking real-time database updates
 function loadHistoryAndGraphData() {
   const aerocubesRef = ref(db, 'Aerocubes');
   const container = document.getElementById('history-table-container');
@@ -85,23 +71,19 @@ function loadHistoryAndGraphData() {
       const aerocubesData = snapshot.val();
       const allHistoryEntries = [];
 
-      for (const deviceId in aerocubesData) {
-        const device = aerocubesData[deviceId];
-        if (device && device.history) {
-          const historyLogs = device.history;
-
-          for (const logKey in historyLogs) {
-            const log = historyLogs[logKey];
-            
+      for (const key in aerocubesData) {
+        const node = aerocubesData[key];
+        if (node && typeof node === 'object' && node.history) {
+          for (const logKey in node.history) {
+            const log = node.history[logKey];
             let calculatedTime = log.timestamp || log.time || log.created_at;
             if (!calculatedTime && logKey.startsWith('-')) {
               calculatedTime = getTimestampFromPushId(logKey);
             }
-
             allHistoryEntries.push({
               id: logKey,
-              deviceId: deviceId,
-              derivedTimestamp: calculatedTime || 0,
+              deviceId: key,
+              derivedTimestamp: calculatedTime || Date.now(),
               ...log
             });
           }
@@ -109,12 +91,11 @@ function loadHistoryAndGraphData() {
       }
 
       if (allHistoryEntries.length === 0) {
-        container.innerHTML = "<p style='color: #64748b; font-size: 14px;'>No historical data records found inside device history logs.</p>";
-        if (aerocubeChartInstance) aerocubeChartInstance.destroy();
+        container.innerHTML = "<p class='loading-text'>No historical data records found.</p>";
+        renderAllIndividualCharts([]);
         return;
       }
 
-      // Sort records newest-first for the data table
       allHistoryEntries.sort((a, b) => b.derivedTimestamp - a.derivedTimestamp);
 
       let tableHTML = `
@@ -123,10 +104,9 @@ function loadHistoryAndGraphData() {
             <tr>
               <th>TIMESTAMP</th>
               <th>DEVICE / ROOM</th>
-              <th>TEMPERATURE</th>
-              <th>HUMIDITY</th>
-              <th>CO2 (PPM)</th>
-              <th>VOC INDEX</th>
+              <th>TEMP / HUM</th>
+              <th>CO2 / VOC</th>
+              <th>PM 1 / 2.5 / 4 / 10</th>
               <th>AIR QUALITY</th>
             </tr>
           </thead>
@@ -134,25 +114,23 @@ function loadHistoryAndGraphData() {
       `;
 
       allHistoryEntries.forEach((item) => {
-        let formattedTime = 'N/A';
-        if (item.derivedTimestamp) {
-          const dateObj = new Date(item.derivedTimestamp);
-          formattedTime = isNaN(dateObj.getTime()) ? 'N/A' : dateObj.toLocaleString();
-        }
-
-        const deviceLabel = item.room || item.location || item.deviceId;
+        let formattedTime = item.derivedTimestamp ? new Date(item.derivedTimestamp).toLocaleString() : 'N/A';
+        const deviceLabel = item.room || item.location || item.deviceId || 'Unknown Device';
         const temp = item.temperature !== undefined ? `${item.temperature}°C` : (item.temp !== undefined ? `${item.temp}°C` : '--');
         const humidity = item.humidity !== undefined ? `${item.humidity}%` : (item.hum !== undefined ? `${item.hum}%` : '--');
         const co2Val = item.co2 !== undefined ? item.co2 : '--';
         const vocVal = item.VOCidx !== undefined ? item.VOCidx : (item.voc !== undefined ? item.voc : '--');
-        const status = item.airQualityStatus || item.status || 'NORMAL';
-
-        let statusStyle = 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);';
-        const upperStatus = String(status).toUpperCase();
+        const pm1Val = item.pm1 !== undefined ? item.pm1 : (item.pm1_0 !== undefined ? item.pm1_0 : '--');
+        const pm25Val = item.pm25 !== undefined ? item.pm25 : (item.pm2_5 !== undefined ? item.pm2_5 : '--');
+        const pm4Val = item.pm4 !== undefined ? item.pm4 : (item.pm4_0 !== undefined ? item.pm4_0 : '--');
+        const pm10Val = item.pm10 !== undefined ? item.pm10 : '--';
         
-        if (upperStatus === 'MODERATE' || upperStatus === 'WARNING' || upperStatus === 'POOR') {
+        const status = String(item.airQualityStatus || item.status || 'NORMAL').toUpperCase();
+        let statusStyle = 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);';
+        
+        if (['MODERATE', 'WARNING', 'POOR'].includes(status)) {
           statusStyle = 'background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3);';
-        } else if (upperStatus === 'BAD' || upperStatus === 'UNHEALTHY' || upperStatus === 'CRITICAL' || upperStatus === 'DANGER') {
+        } else if (['BAD', 'UNHEALTHY', 'CRITICAL', 'DANGER'].includes(status)) {
           statusStyle = 'background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);';
         }
 
@@ -160,11 +138,10 @@ function loadHistoryAndGraphData() {
           <tr>
             <td style="font-family: monospace; color: #cbd5e1;">${formattedTime}</td>
             <td style="font-weight: 500; color: #94a3b8;">${deviceLabel}</td>
-            <td>${temp}</td>
-            <td>${humidity}</td>
-            <td>${co2Val}</td>
-            <td>${vocVal}</td>
-            <td><span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; ${statusStyle}">${upperStatus}</span></td>
+            <td>${temp} / ${humidity}</td>
+            <td>${co2Val} / ${vocVal}</td>
+            <td>${pm1Val} / ${pm25Val} / ${pm4Val} / ${pm10Val}</td>
+            <td><span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; ${statusStyle}">${status}</span></td>
           </tr>
         `;
       });
@@ -172,109 +149,82 @@ function loadHistoryAndGraphData() {
       tableHTML += `</tbody></table>`;
       container.innerHTML = tableHTML;
 
-      // Reverse array back to chronological order for proper chart timeline visualization
-      renderAerocubeChart([...allHistoryEntries].reverse());
+      renderAllIndividualCharts([...allHistoryEntries].reverse());
     } else {
-      container.innerHTML = "<p style='color: #64748b; font-size: 14px;'>No 'Aerocubes' node found in database.</p>";
-      if (aerocubeChartInstance) aerocubeChartInstance.destroy();
+      container.innerHTML = "<p class='loading-text'>No 'Aerocubes' node found.</p>";
+      renderAllIndividualCharts([]);
     }
   });
 }
 
-// Chart.js initialization logic with multi-axis support for CO2, Temperature, Humidity, and VOC
-function renderAerocubeChart(chartData) {
-  const ctx = document.getElementById('aerocubeChart')?.getContext('2d');
-  if (!ctx) return;
+function renderAllIndividualCharts(chartData) {
+  const labels = chartData.map(item => item.derivedTimestamp ? new Date(item.derivedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A');
 
-  const labels = chartData.map(item => {
-    return item.derivedTimestamp ? new Date(item.derivedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A';
-  });
+  function createOrUpdateChart(canvasId, badgeId, cardTitleText, dataArray, borderColorHex, unitSymbol = '') {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
 
-  const co2Dataset = chartData.map(item => item.co2 || 0);
-  const tempDataset = chartData.map(item => item.temperature || item.temp || 0);
-  const humidityDataset = chartData.map(item => item.humidity || item.hum || 0);
-  const vocDataset = chartData.map(item => item.VOCidx || item.voc || 0);
+    const badgeEl = document.getElementById(badgeId);
+    if (badgeEl) {
+      badgeEl.textContent = dataArray.length > 0 ? `${dataArray[dataArray.length - 1]}${unitSymbol}` : `--${unitSymbol}`;
+    }
 
-  if (aerocubeChartInstance) {
-    aerocubeChartInstance.destroy();
+    const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient.addColorStop(0, `${borderColorHex}40`); 
+    gradient.addColorStop(1, `${borderColorHex}00`); 
+
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].data.labels = labels;
+      chartInstances[canvasId].data.datasets[0].data = dataArray;
+      chartInstances[canvasId].update('none');
+    } else {
+      chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: cardTitleText,
+            data: dataArray,
+            borderColor: borderColorHex,
+            backgroundColor: gradient,
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            pointRadius: dataArray.length > 30 ? 0 : 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: borderColorHex
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: '#64748b', maxTicksLimit: 5, font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#64748b', font: { size: 10 } },
+              grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            }
+          }
+        }
+      });
+    }
   }
 
-  aerocubeChartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'CO2 (PPM)',
-          data: co2Dataset,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.05)',
-          borderWidth: 2,
-          tension: 0.3,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Temperature (°C)',
-          data: tempDataset,
-          borderColor: '#38bdf8',
-          backgroundColor: 'rgba(56, 189, 248, 0.05)',
-          borderWidth: 2,
-          tension: 0.3,
-          yAxisID: 'y1'
-        },
-        {
-          label: 'Humidity (%)',
-          data: humidityDataset,
-          borderColor: '#a855f7',
-          backgroundColor: 'rgba(168, 85, 247, 0.05)',
-          borderWidth: 2,
-          tension: 0.3,
-          yAxisID: 'y1'
-        },
-        {
-          label: 'VOC Index',
-          data: vocDataset,
-          borderColor: '#f59e0b',
-          backgroundColor: 'rgba(245, 158, 11, 0.05)',
-          borderWidth: 2,
-          tension: 0.3,
-          yAxisID: 'y'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 12 } } }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#64748b', maxTicksLimit: 8 },
-          grid: { color: '#1e293b' }
-        },
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: { display: true, text: 'CO2 (PPM) & VOC Index', color: '#10b981' },
-          ticks: { color: '#64748b' },
-          grid: { color: '#1e293b' }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: { display: true, text: 'Temperature (°C) & Humidity (%)', color: '#38bdf8' },
-          ticks: { color: '#64748b' },
-          grid: { drawOnChartArea: false }
-        }
-      }
-    }
-  });
+  createOrUpdateChart('chart-temp', 'badge-temp', 'Temperature', chartData.map(item => item.temperature ?? item.temp ?? 0), '#38bdf8', '°C');
+  createOrUpdateChart('chart-hum', 'badge-hum', 'Humidity', chartData.map(item => item.humidity ?? item.hum ?? 0), '#a855f7', '%');
+  createOrUpdateChart('chart-co2', 'badge-co2', 'Carbon Dioxide', chartData.map(item => item.co2 ?? 0), '#10b981', ' PPM');
+  createOrUpdateChart('chart-voc', 'badge-voc', 'VOC Index', chartData.map(item => item.VOCidx ?? item.voc ?? 0), '#f59e0b', '');
+  createOrUpdateChart('chart-pm1', 'badge-pm1', 'PM 1.0', chartData.map(item => item.pm1 ?? item.pm1_0 ?? 0), '#38bdf8', ' µg');
+  createOrUpdateChart('chart-pm25', 'badge-pm25', 'PM 2.5', chartData.map(item => item.pm25 ?? item.pm2_5 ?? 0), '#f43f5e', ' µg');
+  createOrUpdateChart('chart-pm4', 'badge-pm4', 'PM 4.0', chartData.map(item => item.pm4 ?? item.pm4_0 ?? 0), '#f59e0b', ' µg');
+  createOrUpdateChart('chart-pm10', 'badge-pm10', 'PM 10', chartData.map(item => item.pm10 ?? 0), '#a855f7', ' µg');
 }
 
-// Admin action: clear logs across devices
 document.getElementById('btn-clear-history')?.addEventListener('click', async () => {
   if (confirm("Are you sure you want to permanently clear history logs across all Aerocubes?")) {
     try {
@@ -282,18 +232,19 @@ document.getElementById('btn-clear-history')?.addEventListener('click', async ()
       if (snapshot.exists()) {
         const aerocubes = snapshot.val();
         for (const deviceId in aerocubes) {
-          await remove(ref(db, `Aerocubes/${deviceId}/history`));
+          if (aerocubes[deviceId].history) {
+             await remove(ref(db, `Aerocubes/${deviceId}/history`));
+          }
         }
         alert("All history logs cleared successfully.");
       }
     } catch (err) {
       console.error("Clear history error:", err);
-      alert("Failed to clear history.");
+      alert("Failed to clear history logs.");
     }
   }
 });
 
-// Logout event handler
 document.getElementById('btn-logout')?.addEventListener('click', async (e) => {
   e.preventDefault();
   try {

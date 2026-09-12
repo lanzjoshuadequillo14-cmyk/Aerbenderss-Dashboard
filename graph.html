@@ -6,12 +6,14 @@
   <title>Aerocube - Telemetry Graph & History</title>
   
   <link rel="stylesheet" href="graph.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
+  <!-- Mobile Header -->
   <div class="mobile-top-bar">
     <button class="menu-toggle-btn" id="menuToggleBtn">
       <i data-lucide="menu"></i>
@@ -21,26 +23,28 @@
 
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+  <!-- Narrow Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand-box">
       <div class="brand-logo">
-        <img src="logo/aerocube logo.png" alt="Logo">
+        <img src="logo/aerocube logo.png" alt="AC" onerror="this.style.display='none'">
       </div>
     </div>
     
     <ul class="sidebar-menu">
-      <li><a href="index.html"><i data-lucide="layout-grid"></i> Dashboard</a></li>
-      <li><a href="Graph.html" class="active"><i data-lucide="line-chart"></i> Graph</a></li>
-      <li><a href="history.html"><i data-lucide="info"></i> History</a></li>
-      <li><a href="settings.html"><i data-lucide="settings"></i> Settings</a></li>
+      <li><a href="index.html"><i data-lucide="layout-grid"></i><span>Dashboard</span></a></li>
+      <li><a href="Graph.html" class="active"><i data-lucide="line-chart"></i><span>Graph</span></a></li>
+      <li><a href="history.html"><i data-lucide="info"></i><span>History</span></a></li>
+      <li><a href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a></li>
     </ul>
 
     <ul class="sidebar-footer-menu">
-      <li><a href="about.html"><i data-lucide="help-circle"></i> About</a></li>
-      <li><a href="#" id="btn-logout" class="logout-link"><i data-lucide="log-out"></i> Logout</a></li>
+      <li><a href="about.html"><i data-lucide="help-circle"></i><span>About</span></a></li>
+      <li><a href="#" id="btn-logout" class="logout-link"><i data-lucide="log-out"></i><span>Logout</span></a></li>
     </ul>
   </aside>
 
+  <!-- Main Content -->
   <main class="main-content">
     <header>
       <h1>Telemetry Visualizer & History Log</h1>
@@ -49,17 +53,104 @@
       </div>
     </header>
 
-    <div class="card">
-      <div class="card-title">Real-Time Sensor Trends</div>
-      <div class="chart-container" style="height: 380px;">
-        <canvas id="aerocubeChart"></canvas>
+    <!-- Graph Cards Grid -->
+    <div class="metrics-grid">
+      
+      <!-- Temperature Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="thermometer"></i> Temperature</div>
+          <div id="badge-temp" class="live-badge badge-blue">--°C</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-temp"></canvas>
+        </div>
       </div>
+
+      <!-- Humidity Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="droplets"></i> Humidity</div>
+          <div id="badge-hum" class="live-badge badge-purple">--%</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-hum"></canvas>
+        </div>
+      </div>
+
+      <!-- CO2 Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="wind"></i> Carbon Dioxide</div>
+          <div id="badge-co2" class="live-badge badge-green">-- PPM</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-co2"></canvas>
+        </div>
+      </div>
+
+      <!-- VOC Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="flask-conical"></i> VOC Index</div>
+          <div id="badge-voc" class="live-badge badge-yellow">--</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-voc"></canvas>
+        </div>
+      </div>
+
+      <!-- PM 1.0 Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="activity"></i> PM 1.0</div>
+          <div id="badge-pm1" class="live-badge badge-blue">-- µg</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-pm1"></canvas>
+        </div>
+      </div>
+
+      <!-- PM 2.5 Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="activity"></i> PM 2.5</div>
+          <div id="badge-pm25" class="live-badge badge-red">-- µg</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-pm25"></canvas>
+        </div>
+      </div>
+
+      <!-- PM 4.0 Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="activity"></i> PM 4.0</div>
+          <div id="badge-pm4" class="live-badge badge-yellow">-- µg</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-pm4"></canvas>
+        </div>
+      </div>
+
+      <!-- PM 10 Card -->
+      <div class="card">
+        <div class="card-header-flex">
+          <div class="metric-title"><i data-lucide="activity"></i> PM 10</div>
+          <div id="badge-pm10" class="live-badge badge-purple">-- µg</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-pm10"></canvas>
+        </div>
+      </div>
+
     </div>
 
-    <div class="card">
-      <div class="card-title">System Logs Logged</div>
+    <!-- History Table -->
+    <div class="card table-card">
+      <div class="card-title">System Logs Database</div>
       <div class="table-container" id="history-table-container">
-        <p style='color: #64748b; font-size: 14px;'>Loading historical database records...</p>
+        <p class="loading-text">Loading historical database records...</p>
       </div>
     </div>
   </main>
