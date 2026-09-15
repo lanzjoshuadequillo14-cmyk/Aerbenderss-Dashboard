@@ -19,6 +19,43 @@ const auth = getAuth(app);
 
 const chartInstances = {};
 
+// Key mappings matching exact Firebase structure (including nested pm object)
+const KEYS = {
+  temp: ['temperature', 'temp', 'Temp', 'TEMPERATURE'],
+  hum: ['humidity', 'hum', 'Hum', 'HUMIDITY'],
+  co2: ['co2', 'CO2', 'carbonDioxide'],
+  voc: ['VOCidx', 'voc', 'VOC', 'vocIndex', 'voc_idx'],
+  pm1: ['pm1p0', 'pm1_0', 'pm1', 'pm_1_0', 'PM1_0', 'PM1'],
+  pm25: ['pm2p5', 'pm2_5', 'pm25', 'pm_2_5', 'PM2_5', 'PM25'],
+  pm4: ['pm4p0', 'pm4_0', 'pm4', 'pm_4_0', 'PM4_0', 'PM4'],
+  pm10: ['pm10p0', 'pm10_0', 'pm10', 'pm_10_0', 'PM10_0', 'PM10']
+};
+
+// Extracts values from top-level or nested 'pm' object
+function extractMetric(item, keyList) {
+  if (!item || typeof item !== 'object') return 0;
+  
+  // 1. Check top-level properties
+  for (const key of keyList) {
+    if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
+      const parsed = parseFloat(item[key]);
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+
+  // 2. Check nested 'pm' object (Firebase: pm -> pm1p0, pm2p5, etc.)
+  if (item.pm && typeof item.pm === 'object') {
+    for (const key of keyList) {
+      if (item.pm[key] !== undefined && item.pm[key] !== null && item.pm[key] !== '') {
+        const parsed = parseFloat(item.pm[key]);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+  }
+
+  return 0;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) { lucide.createIcons(); }
 
@@ -73,18 +110,27 @@ function loadHistoryAndGraphData() {
 
       for (const key in aerocubesData) {
         const node = aerocubesData[key];
-        if (node && typeof node === 'object' && node.history) {
-          for (const logKey in node.history) {
-            const log = node.history[logKey];
-            let calculatedTime = log.timestamp || log.time || log.created_at;
-            if (!calculatedTime && logKey.startsWith('-')) {
-              calculatedTime = getTimestampFromPushId(logKey);
+        if (node && typeof node === 'object') {
+          if (node.history) {
+            for (const logKey in node.history) {
+              const log = node.history[logKey];
+              let calculatedTime = log.timestamp || log.time || log.created_at;
+              if (!calculatedTime && logKey.startsWith('-')) {
+                calculatedTime = getTimestampFromPushId(logKey);
+              }
+              allHistoryEntries.push({
+                id: logKey,
+                deviceId: key,
+                derivedTimestamp: calculatedTime || Date.now(),
+                ...log
+              });
             }
+          } else {
             allHistoryEntries.push({
-              id: logKey,
+              id: key,
               deviceId: key,
-              derivedTimestamp: calculatedTime || Date.now(),
-              ...log
+              derivedTimestamp: Date.now(),
+              ...node
             });
           }
         }
@@ -116,15 +162,17 @@ function loadHistoryAndGraphData() {
       allHistoryEntries.forEach((item) => {
         let formattedTime = item.derivedTimestamp ? new Date(item.derivedTimestamp).toLocaleString() : 'N/A';
         const deviceLabel = item.room || item.location || item.deviceId || 'Unknown Device';
-        const temp = item.temperature !== undefined ? `${item.temperature}°C` : (item.temp !== undefined ? `${item.temp}°C` : '--');
-        const humidity = item.humidity !== undefined ? `${item.humidity}%` : (item.hum !== undefined ? `${item.hum}%` : '--');
-        const co2Val = item.co2 !== undefined ? item.co2 : '--';
-        const vocVal = item.VOCidx !== undefined ? item.VOCidx : (item.voc !== undefined ? item.voc : '--');
-        const pm1Val = item.pm1 !== undefined ? item.pm1 : (item.pm1_0 !== undefined ? item.pm1_0 : '--');
-        const pm25Val = item.pm25 !== undefined ? item.pm25 : (item.pm2_5 !== undefined ? item.pm2_5 : '--');
-        const pm4Val = item.pm4 !== undefined ? item.pm4 : (item.pm4_0 !== undefined ? item.pm4_0 : '--');
-        const pm10Val = item.pm10 !== undefined ? item.pm10 : '--';
         
+        const temp = extractMetric(item, KEYS.temp);
+        const hum = extractMetric(item, KEYS.hum);
+        const co2 = extractMetric(item, KEYS.co2);
+        const voc = extractMetric(item, KEYS.voc);
+        
+        const pm1 = extractMetric(item, KEYS.pm1);
+        const pm25 = extractMetric(item, KEYS.pm25);
+        const pm4 = extractMetric(item, KEYS.pm4);
+        const pm10 = extractMetric(item, KEYS.pm10);
+
         const status = String(item.airQualityStatus || item.status || 'NORMAL').toUpperCase();
         let statusStyle = 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);';
         
@@ -138,9 +186,9 @@ function loadHistoryAndGraphData() {
           <tr>
             <td style="font-family: monospace; color: #cbd5e1;">${formattedTime}</td>
             <td style="font-weight: 500; color: #94a3b8;">${deviceLabel}</td>
-            <td>${temp} / ${humidity}</td>
-            <td>${co2Val} / ${vocVal}</td>
-            <td>${pm1Val} / ${pm25Val} / ${pm4Val} / ${pm10Val}</td>
+            <td>${temp}°C / ${hum}%</td>
+            <td>${co2} / ${voc}</td>
+            <td>${pm1} / ${pm25} / ${pm4} / ${pm10}</td>
             <td><span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; ${statusStyle}">${status}</span></td>
           </tr>
         `;
@@ -166,7 +214,8 @@ function renderAllIndividualCharts(chartData) {
 
     const badgeEl = document.getElementById(badgeId);
     if (badgeEl) {
-      badgeEl.textContent = dataArray.length > 0 ? `${dataArray[dataArray.length - 1]}${unitSymbol}` : `--${unitSymbol}`;
+      const latestVal = dataArray.length > 0 ? dataArray[dataArray.length - 1] : '--';
+      badgeEl.textContent = `${latestVal}${unitSymbol}`;
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 200);
@@ -215,14 +264,15 @@ function renderAllIndividualCharts(chartData) {
     }
   }
 
-  createOrUpdateChart('chart-temp', 'badge-temp', 'Temperature', chartData.map(item => item.temperature ?? item.temp ?? 0), '#38bdf8', '°C');
-  createOrUpdateChart('chart-hum', 'badge-hum', 'Humidity', chartData.map(item => item.humidity ?? item.hum ?? 0), '#a855f7', '%');
-  createOrUpdateChart('chart-co2', 'badge-co2', 'Carbon Dioxide', chartData.map(item => item.co2 ?? 0), '#10b981', ' PPM');
-  createOrUpdateChart('chart-voc', 'badge-voc', 'VOC Index', chartData.map(item => item.VOCidx ?? item.voc ?? 0), '#f59e0b', '');
-  createOrUpdateChart('chart-pm1', 'badge-pm1', 'PM 1.0', chartData.map(item => item.pm1 ?? item.pm1_0 ?? 0), '#38bdf8', ' µg');
-  createOrUpdateChart('chart-pm25', 'badge-pm25', 'PM 2.5', chartData.map(item => item.pm25 ?? item.pm2_5 ?? 0), '#f43f5e', ' µg');
-  createOrUpdateChart('chart-pm4', 'badge-pm4', 'PM 4.0', chartData.map(item => item.pm4 ?? item.pm4_0 ?? 0), '#f59e0b', ' µg');
-  createOrUpdateChart('chart-pm10', 'badge-pm10', 'PM 10', chartData.map(item => item.pm10 ?? 0), '#a855f7', ' µg');
+  createOrUpdateChart('chart-temp', 'badge-temp', 'Temperature', chartData.map(item => extractMetric(item, KEYS.temp)), '#38bdf8', '°C');
+  createOrUpdateChart('chart-hum', 'badge-hum', 'Humidity', chartData.map(item => extractMetric(item, KEYS.hum)), '#a855f7', '%');
+  createOrUpdateChart('chart-co2', 'badge-co2', 'Carbon Dioxide', chartData.map(item => extractMetric(item, KEYS.co2)), '#10b981', ' PPM');
+  createOrUpdateChart('chart-voc', 'badge-voc', 'VOC Index', chartData.map(item => extractMetric(item, KEYS.voc)), '#f59e0b', '');
+  
+  createOrUpdateChart('chart-pm1', 'badge-pm1', 'PM 1.0', chartData.map(item => extractMetric(item, KEYS.pm1)), '#38bdf8', ' µg');
+  createOrUpdateChart('chart-pm25', 'badge-pm25', 'PM 2.5', chartData.map(item => extractMetric(item, KEYS.pm25)), '#f43f5e', ' µg');
+  createOrUpdateChart('chart-pm4', 'badge-pm4', 'PM 4.0', chartData.map(item => extractMetric(item, KEYS.pm4)), '#f59e0b', ' µg');
+  createOrUpdateChart('chart-pm10', 'badge-pm10', 'PM 10', chartData.map(item => extractMetric(item, KEYS.pm10)), '#a855f7', ' µg');
 }
 
 document.getElementById('btn-clear-history')?.addEventListener('click', async () => {

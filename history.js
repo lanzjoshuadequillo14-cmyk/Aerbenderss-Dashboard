@@ -24,6 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
   initHamburgerMenu();
 });
 
+// Helper function to safely extract metric values (checks nested 'pm' object and top-level)
+function extractPMMetric(item, possibleKeys) {
+  if (!item || typeof item !== 'object') return '--';
+
+  // 1. Check inside nested 'pm' node (e.g. item.pm.pm1p0)
+  if (item.pm && typeof item.pm === 'object') {
+    for (const key of possibleKeys) {
+      if (item.pm[key] !== undefined && item.pm[key] !== null && item.pm[key] !== '') {
+        return item.pm[key];
+      }
+    }
+  }
+
+  // 2. Fallback to top-level properties (e.g. item.pm1p0)
+  for (const key of possibleKeys) {
+    if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
+      return item[key];
+    }
+  }
+
+  return '--';
+}
+
 // Authentication & Route Protection
 onAuthStateChanged(auth, async (user) => {
   if (user) {
@@ -65,7 +88,7 @@ function getTimestampFromPushId(pushId) {
 
 // Fetch and Render History Logs from 'Aerocubes' Node
 function loadHistoryData() {
-  const aerocubesRef = ref(db, 'Aerocubes'); // Points directly to your structure root
+  const aerocubesRef = ref(db, 'Aerocubes');
   const container = document.getElementById('history-table-container');
 
   onValue(aerocubesRef, (snapshot) => {
@@ -97,6 +120,14 @@ function loadHistoryData() {
               ...log
             });
           }
+        } else if (device) {
+          // Fallback: If no history sub-node exists yet, include current root readings
+          allHistoryEntries.push({
+            id: deviceId,
+            deviceId: deviceId,
+            derivedTimestamp: device.lastUpdated || device.timestamp || Date.now(),
+            ...device
+          });
         }
       }
 
@@ -109,7 +140,7 @@ function loadHistoryData() {
       allHistoryEntries.sort((a, b) => b.derivedTimestamp - a.derivedTimestamp);
 
       let tableHTML = `
-        <table style="width: 100%; text-align: left; border-collapse: collapse; min-width: 700px;">
+        <table style="width: 100%; text-align: left; border-collapse: collapse; min-width: 850px;">
           <thead>
             <tr style="border-bottom: 2px solid #1e293b; color: #94a3b8; font-size: 13px;">
               <th style="padding: 12px 16px;">TIMESTAMP</th>
@@ -118,6 +149,7 @@ function loadHistoryData() {
               <th style="padding: 12px 16px;">HUMIDITY</th>
               <th style="padding: 12px 16px;">CO2 (PPM)</th>
               <th style="padding: 12px 16px;">VOC INDEX</th>
+              <th style="padding: 12px 16px;">PM 1 / 2.5 / 4 / 10</th>
               <th style="padding: 12px 16px;">AIR QUALITY</th>
             </tr>
           </thead>
@@ -135,13 +167,20 @@ function loadHistoryData() {
         // Room/Device identifier mapping
         const deviceLabel = item.room || item.location || item.deviceId;
 
-        // Extract accurate parameters matching your database structure
+        // Extract accurate parameters matching database structure
         const temp = item.temperature !== undefined ? `${item.temperature}°C` : (item.temp !== undefined ? `${item.temp}°C` : '--');
         const humidity = item.humidity !== undefined ? `${item.humidity}%` : (item.hum !== undefined ? `${item.hum}%` : '--');
         const co2Val = item.co2 !== undefined ? item.co2 : '--';
-        const vocVal = item.VOCidx !== undefined ? item.VOCidx : '--';
+        const vocVal = item.VOCidx !== undefined ? item.VOCidx : (item.voc !== undefined ? item.voc : '--');
         
-        // Match exact property name for air quality status from your Firebase
+        // Extract Particulate Matter (PM) readings from nested 'pm' object or flat keys
+        const pm1 = extractPMMetric(item, ['pm1p0', 'pm1_0', 'pm1', 'PM1_0']);
+        const pm25 = extractPMMetric(item, ['pm2p5', 'pm2_5', 'pm25', 'PM2_5']);
+        const pm4 = extractPMMetric(item, ['pm4p0', 'pm4_0', 'pm4', 'PM4_0']);
+        const pm10 = extractPMMetric(item, ['pm10p0', 'pm10_0', 'pm10', 'PM10_0']);
+        const pmFormatted = `${pm1} / ${pm25} / ${pm4} / ${pm10}`;
+
+        // Match exact property name for air quality status
         const status = item.airQualityStatus || item.status || 'NORMAL';
 
         // Dynamic badge styling based on air quality status
@@ -162,6 +201,7 @@ function loadHistoryData() {
             <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${humidity}</td>
             <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${co2Val}</td>
             <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${vocVal}</td>
+            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${pmFormatted}</td>
             <td style="padding: 16px;">
               <span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; ${statusStyle}">${upperStatus}</span>
             </td>
