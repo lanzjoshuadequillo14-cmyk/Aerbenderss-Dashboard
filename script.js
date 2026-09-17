@@ -20,6 +20,8 @@ const auth = getAuth(app);
 const BASE_PATH = '/Aerocubes/aerocube_01'; 
 
 // Target DOM Elements
+const valAqi = document.getElementById('val-aqi');
+const subAqi = document.getElementById('sub-aqi');
 const valTemp = document.getElementById('val-temp');
 const subTemp = document.getElementById('sub-temp');
 const valHumidity = document.getElementById('val-humidity');
@@ -109,6 +111,18 @@ if (btnLogout) {
   });
 }
 
+// Dynamic Card Border Alert helper
+function setCardStatus(element, state) {
+  if (!element) return;
+  const card = element.closest('.card');
+  if (!card) return;
+
+  card.classList.remove('border-good', 'border-moderate', 'border-critical');
+  if (state === 'good') card.classList.add('border-good');
+  else if (state === 'moderate') card.classList.add('border-moderate');
+  else if (state === 'critical') card.classList.add('border-critical');
+}
+
 // Helper function for PM threshold updates
 function updatePmBox(pmElement, value, moderateThreshold, criticalThreshold) {
     if (value === undefined || !pmElement) return; 
@@ -145,26 +159,66 @@ function updatePmBox(pmElement, value, moderateThreshold, criticalThreshold) {
     }
 }
 
+// Standard EPA PM2.5 AQI Calculation Helper
+function calculatePM25AQI(pm25) {
+  if (pm25 === undefined || pm25 === null) return null;
+  const c = Math.floor(pm25 * 10) / 10;
+  
+  if (c <= 12.0) {
+    return { aqi: Math.round(((50 - 0) / 12.0) * c), status: 'Good', color: '#10b981', state: 'good' };
+  } else if (c <= 35.4) {
+    return { aqi: Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51), status: 'Moderate', color: '#eab308', state: 'moderate' };
+  } else if (c <= 55.4) {
+    return { aqi: Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101), status: 'Unhealthy (Sensitive)', color: '#f97316', state: 'moderate' };
+  } else if (c <= 150.4) {
+    return { aqi: Math.round(((200 - 151) / (150.4 - 55.5)) * (c - 55.5) + 151), status: 'Unhealthy', color: '#ef4444', state: 'critical' };
+  } else if (c <= 250.4) {
+    return { aqi: Math.round(((300 - 201) / (250.4 - 150.5)) * (c - 150.5) + 201), status: 'Very Unhealthy', color: '#a855f7', state: 'critical' };
+  } else {
+    return { aqi: Math.round(((500 - 301) / (500.4 - 250.5)) * (c - 250.5) + 301), status: 'Hazardous', color: '#78350f', state: 'critical' };
+  }
+}
+
 // 1. Listen for Live Telemetry from Hardware
 onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
   const data = snapshot.val();
   if (!data) return; 
 
-  // --- UPDATE METRICS UI ---
+  // --- UPDATE AQI CARD ---
+  let computedAqi = data.aqi !== undefined ? { aqi: data.aqi } : calculatePM25AQI(data.pm ? data.pm.pm2p5 : undefined);
+  if (valAqi && computedAqi) {
+    valAqi.innerHTML = `${computedAqi.aqi} <span>AQI</span>`;
+    valAqi.style.color = computedAqi.color || '#ffffff';
+    if (subAqi) {
+      subAqi.innerText = computedAqi.status || 'Live reading';
+      subAqi.style.color = computedAqi.color || '#94a3b8';
+    }
+    setCardStatus(valAqi, computedAqi.state || 'good');
+  }
+
+  // --- UPDATE METRICS UI & CARD STYLES ---
   if (data.temp !== undefined && valTemp) {
     valTemp.innerHTML = `${data.temp} <span>°C</span>`;
     if (subTemp) subTemp.innerText = `Live reading`;
+    setCardStatus(valTemp, data.temp >= 30 || data.temp <= 18 ? 'moderate' : 'good');
   }
+
   if (data.humidity !== undefined && valHumidity) {
     valHumidity.innerHTML = `${data.humidity} <span>%</span>`;
     if (subHumidity) subHumidity.innerText = `Live reading`;
+    setCardStatus(valHumidity, data.humidity >= 70 || data.humidity <= 30 ? 'moderate' : 'good');
   }
+
   if (data.co2 !== undefined && valCo2) {
     valCo2.innerHTML = `${data.co2} <span>ppm</span>`;
+    setCardStatus(valCo2, data.co2 >= 1500 ? 'critical' : data.co2 >= 1000 ? 'moderate' : 'good');
   }
+
   if (data.VOCidx !== undefined && valVoc) {
     valVoc.innerText = data.VOCidx;
+    const vocState = data.VOCidx >= 250 ? 'critical' : data.VOCidx >= 150 ? 'moderate' : 'good';
     valVoc.style.color = data.VOCidx >= 250 ? '#ef4444' : data.VOCidx >= 150 ? '#eab308' : '#ffffff';
+    setCardStatus(valVoc, vocState);
   }
   
   if (data.pm) {
@@ -174,11 +228,11 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
     updatePmBox(valPm100, data.pm.pm10p0, 50, 100); 
   }
 
-  // --- CLEAR, UNDERSTANDABLE INSIGHTS & RECOMMENDATIONS ---
+  // --- INSIGHTS & RECOMMENDATIONS ---
   let insights = [];
   let recs = [];
 
-  // A. Temperature
+  // Temperature
   if (data.temp !== undefined) {
       if (data.temp >= 30) {
           insights.push(`<strong>Temperature:</strong> The room is very hot (${data.temp}°C), which can make you feel tired or uncomfortable.`);
@@ -192,7 +246,7 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
       }
   }
 
-  // B. Humidity
+  // Humidity
   if (data.humidity !== undefined) {
       if (data.humidity >= 70) {
           insights.push(`<strong>Humidity:</strong> The air is very damp (${data.humidity}%). This can feel muggy and might cause mold to grow on walls or fabrics.`);
@@ -206,7 +260,7 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
       }
   }
 
-  // C. Carbon Dioxide (CO2)
+  // CO2
   if (data.co2 !== undefined) {
       if (data.co2 >= 1000) {
           insights.push(`<strong>Air Freshness (CO2):</strong> The room is getting stuffy (${data.co2} ppm). Breathing in stale air can cause headaches, sleepiness, and make it hard to focus.`);
@@ -217,7 +271,7 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
       }
   }
 
-  // D. Volatile Organic Compounds (VOC)
+  // VOC
   if (data.VOCidx !== undefined) {
       if (data.VOCidx >= 150) {
           insights.push(`<strong>Odors & Chemicals (VOC):</strong> Strong smells or chemicals are detected in the air. This can irritate your eyes, nose, and throat.`);
@@ -228,7 +282,7 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
       }
   }
 
-  // E. Particulate Matter (Dust & Smoke)
+  // PM
   if (data.pm) {
       const isHighPm = (data.pm.pm1p0 >= 35 || data.pm.pm2p5 >= 35 || data.pm.pm4p0 >= 35 || data.pm.pm10p0 >= 50);
       if (isHighPm) {
@@ -271,6 +325,8 @@ onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
         aqiStatusBadge.style.color = '#10b981';
       }
   }
+
+  if (window.lucide) lucide.createIcons();
 });
 
 // 2. Listen for Controls Status from Hardware
@@ -335,7 +391,7 @@ if(switchRelay1) switchRelay1.addEventListener('change', (e) => updateControls({
 if(switchRelay2) switchRelay2.addEventListener('change', (e) => updateControls({ manualRelay2: e.target.checked }));
 if(switchSilent) switchSilent.addEventListener('change', (e) => updateControls({ isBuzzerSilenced: e.target.checked }));
 
-// humberger menu toggle for mobile view
+// Mobile hamburger menu toggle
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.querySelector('.sidebar');
 const overlay = document.getElementById('sidebarOverlay');
