@@ -10,13 +10,13 @@
 </head>
 <body>
 
-    <!-- Mobile Top Header Bar with Hamburger Button -->
+  <!-- Mobile Top Header Bar with Hamburger Button -->
   <div class="mobile-top-bar">
     <button class="menu-toggle-btn" id="menuToggle">☰</button>
     <span style="font-weight: 700; font-size: 16px;">AeroCube</span>
   </div>
 
-  <!-- Backdrop Overlay (dims the background when mobile menu is open) -->
+  <!-- Backdrop Overlay -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- Left Sidebar -->
@@ -81,6 +81,18 @@
 
     <!-- Metrics Grid -->
     <section class="metrics-grid">
+
+      <!-- Overall Air Quality Index (AQI) Card -->
+      <div class="card card-aqi">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="activity"></i></div>
+          AIR QUALITY INDEX (AQI)
+        </div>
+        <div>
+          <div class="card-value" id="val-aqi">-- <span>AQI</span></div>
+          <div class="card-subtext" id="sub-aqi">Awaiting computation...</div>
+        </div>
+      </div>
       
       <!-- Temperature Card -->
       <div class="card">
@@ -241,6 +253,5 @@
   <script>lucide.createIcons();</script>
   <script type="module" src="script.js"></script>
 
-  
 </body>
 </html>
