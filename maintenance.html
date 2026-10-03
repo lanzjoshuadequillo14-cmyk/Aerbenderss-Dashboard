@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AeroCube | Maintenance</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    <span class="mobile-brand">AeroCube</span>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+      </div>
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+        <a href="graph.html" class="nav-item"><i data-lucide="line-chart"></i><span>Analytics</span></a>
+        <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="aeroplug.html" class="nav-item"><i data-lucide="plug"></i><span>AeroPlug</span></a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <a href="about.html" class="nav-item"><i data-lucide="help-circle"></i><span>About</span></a>
+      <a href="#" id="btn-logout" class="nav-item logout-link"><i data-lucide="log-out"></i><span>Logout</span></a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="header-title">
+        <h1>Maintenance</h1>
+        <p class="header-subtitle">Sensor cleaning and device upkeep</p>
+      </div>
+      <div class="header-badges">
+        <div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
+      </div>
+    </header>
+
+    <!-- SPS30 Cleaning Card -->
+    <section class="aeroplug-section">
+      <div class="section-header">
+        <h2><i data-lucide="wrench"></i> SPS30 Sensor Maintenance</h2>
+      </div>
+      <div class="aeroplug-content">
+        <div class="auto-mode-info">
+          <div class="auto-mode-label">SPS30 FAN CLEANING</div>
+          <p>The SPS30 particulate matter sensor has an internal fan-cleaning mechanism. Triggering this command starts a high-speed fan purge to remove accumulated dust from the sensor chamber, helping maintain particle measurement precision.</p>
+          <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">This command is handled entirely by the ESP32 firmware. The dashboard only sends the trigger signal to Firebase.</p>
+        </div>
+
+        <div class="outlet-controls" style="grid-template-columns: 1fr;">
+          <div class="relay-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+            <div>
+              <div class="relay-title">Sensor Cleaning Status</div>
+              <div class="relay-state" id="text-sps30-status">Ready</div>
+            </div>
+            <button class="btn-cleaning" id="btn-sps30clean">
+              <i data-lucide="play"></i> Start Sensor Cleaning
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="modal-confirm" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-icon"><i data-lucide="alert-triangle"></i></div>
+        <h3>Confirm Sensor Cleaning</h3>
+        <p>This will trigger the SPS30 fan-cleaning cycle on the AeroCube device. The cleaning operation will run automatically on the hardware side.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The ESP32 will reset the command back to false when cleaning is complete.</p>
+        <div class="modal-buttons">
+          <button class="btn-cancel" id="btn-modal-cancel">Cancel</button>
+          <button class="btn-confirm" id="btn-modal-confirm">Confirm & Start</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>lucide.createIcons();</script>
+  <script type="module" src="maintenance.js"></script>
+</body>
+</html>

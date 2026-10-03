@@ -7,251 +7,289 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
 </head>
 <body>
 
   <!-- Mobile Top Header Bar with Hamburger Button -->
   <div class="mobile-top-bar">
-    <button class="menu-toggle-btn" id="menuToggle">☰</button>
-    <span style="font-weight: 700; font-size: 16px;">AeroCube</span>
+    <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    <span class="mobile-brand">AeroCube</span>
   </div>
 
   <!-- Backdrop Overlay -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- Left Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/aerocube logo.png" alt="AeroCube Logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
       </div>
-      
       <div class="nav-links">
         <a href="index.html" class="nav-item active">
-          <i data-lucide="layout-grid"></i>
-          <span>Dashboard</span>
+          <i data-lucide="layout-grid"></i><span>Dashboard</span>
         </a>
-        
         <a href="graph.html" class="nav-item">
-          <i data-lucide="line-chart"></i>
-          <span>Graph</span>
+          <i data-lucide="line-chart"></i><span>Analytics</span>
         </a>
         <a href="History.html" class="nav-item">
-          <i data-lucide="info"></i>
-          <span>History</span>
+          <i data-lucide="clock"></i><span>History</span>
+        </a>
+        <a href="aeroplug.html" class="nav-item">
+          <i data-lucide="plug"></i><span>AeroPlug</span>
         </a>
         <a href="settings.html" class="nav-item">
-          <i data-lucide="settings"></i>
-          <span>Settings</span>
+          <i data-lucide="settings"></i><span>Settings</span>
         </a>
-        
       </div>
     </div>
-    
-   <div class="sidebar-footer">
+    <div class="sidebar-footer">
+      <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden>
+        <i data-lucide="download"></i><span>Install App</span>
+      </button>
       <a href="about.html" class="nav-item">
-        <i data-lucide="help-circle"></i>
-        <span>About</span>
+        <i data-lucide="help-circle"></i><span>About</span>
       </a>
-      <a href="#" id="btn-logout" class="nav-item" style="color: #ef4444;">
-        <i data-lucide="log-out"></i>
-        <span>Logout</span>
+      <a href="#" id="btn-logout" class="nav-item logout-link">
+        <i data-lucide="log-out"></i><span>Logout</span>
       </a>
     </div>
   </aside>
 
   <!-- Main Content -->
   <main class="main-content">
-    
+
     <!-- Header -->
     <header class="header">
       <div class="header-title">
         <h1>AeroCube Dashboard</h1>
+        <p class="header-subtitle">Real-time indoor air quality monitoring</p>
       </div>
       <div class="header-badges">
         <div class="badge badge-live">
-          <div class="badge-dot"></div>
-          LIVE SYNC
+          <div class="badge-dot"></div>LIVE SYNC
         </div>
-        <div class="badge badge-status" id="aqi-status-badge">
-          <span id="val-status">WAITING FOR HARDWARE...</span>
+        <div class="badge badge-device" id="device-connection-badge">
+          <span id="device-status-text">CONNECTING...</span>
         </div>
+        <button class="notification-button" id="btn-notifications" type="button">
+          <i data-lucide="bell"></i><span>Enable Notifications</span>
+        </button>
       </div>
     </header>
 
-    <!-- Metrics Grid -->
+    <!-- Device Status Bar -->
+    <section class="device-status-bar" id="device-status-bar">
+      <div class="device-status-left">
+        <div class="device-indicator" id="device-indicator"></div>
+        <div>
+          <div class="device-name" id="device-name">AeroCube 01</div>
+          <div class="device-last-seen" id="device-last-seen">Last data received: --</div>
+        </div>
+      </div>
+      <div class="device-status-right">
+        <span class="device-uptime" id="device-uptime"></span>
+        <div class="top-buzzer-control">
+          <div>
+            <div class="top-buzzer-label">AeroCube Buzzer</div>
+            <div class="top-buzzer-state" id="text-buzzer">--</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switch-buzzer" disabled>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overall Air Quality Status Banner -->
+    <section class="aq-status-banner" id="aq-banner">
+      <div class="aq-banner-left">
+        <div class="aq-banner-label">AIR QUALITY</div>
+        <div class="aq-banner-status" id="aq-banner-status">--</div>
+        <div class="aq-banner-desc" id="aq-banner-desc">Awaiting data from AeroCube device...</div>
+      </div>
+      <div class="aq-banner-icon" id="aq-banner-icon">
+        <i data-lucide="activity"></i>
+      </div>
+    </section>
+
+    <!-- Sensor Cards Grid -->
     <section class="metrics-grid">
-
-      <!-- Overall Air Quality Index (AQI) Card -->
-      <div class="card card-aqi">
-        <div class="card-header">
-          <div class="card-icon"><i data-lucide="activity"></i></div>
-          AIR QUALITY INDEX (AQI)
-        </div>
-        <div>
-          <div class="card-value" id="val-aqi">-- <span>AQI</span></div>
-          <div class="card-subtext" id="sub-aqi">Awaiting computation...</div>
-        </div>
-      </div>
-      
-      <!-- Temperature Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon"><i data-lucide="thermometer"></i></div>
-          TEMPERATURE
-        </div>
-        <div>
-          <div class="card-value" id="val-temp">-- <span>°C</span></div>
-          <div class="card-subtext" id="sub-temp">Awaiting data...</div>
-        </div>
-      </div>
-
-      <!-- Humidity Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon"><i data-lucide="droplets"></i></div>
-          HUMIDITY
-        </div>
-        <div>
-          <div class="card-value" id="val-humidity">-- <span>%</span></div>
-          <div class="card-subtext" id="sub-humidity">Awaiting data...</div>
-        </div>
-      </div>
-
-      <!-- Particulate Matter Card -->
-      <div class="card pm-card" style="grid-row: span 2;">
-        <div class="card-header">
-          <div class="card-icon"><i data-lucide="grid"></i></div>
-          PARTICULATE MATTER DENSITY
-        </div>
-        <div class="pm-grid">
-          <div class="pm-box">
-            <div class="pm-label">PM 1.0</div>
-            <div class="pm-val" id="val-pm10">-- <span>ug/m3</span></div>
-          </div>
-         <div class="pm-box">
-            <div class="pm-label">PM 2.5</div>
-            <div class="pm-val" id="val-pm25">-- <span>ug/m3</span></div>
-          </div>
-          <div class="pm-box">
-            <div class="pm-label">PM 4.0</div>
-            <div class="pm-val" id="val-pm40">-- <span>ug/m3</span></div>
-          </div>
-          <div class="pm-box">
-            <div class="pm-label">PM 10.0</div>
-            <div class="pm-val" id="val-pm100">-- <span>ug/m3</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CO2 Levels Card -->
-      <div class="card">
+      <!-- CO2 -->
+      <div class="card" id="card-co2">
         <div class="card-header">
           <div class="card-icon"><i data-lucide="wind"></i></div>
-          CO2 LEVELS
+          CO<sub>2</sub>
         </div>
-        <div>
+        <div class="card-body">
           <div class="card-value" id="val-co2">-- <span>ppm</span></div>
+          <div class="card-status" id="status-co2">Awaiting data</div>
         </div>
       </div>
 
-      <!-- VOC Index Card -->
-      <div class="card">
+      <!-- PM AQI -->
+      <div class="card" id="card-pmaqi">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="gauge"></i></div>
+          PM AQI
+        </div>
+        <div class="card-body">
+          <div class="card-value" id="val-pmaqi">-- <span>AQI</span></div>
+          <div class="card-status" id="status-pmaqi">Awaiting data</div>
+        </div>
+      </div>
+
+      <!-- VOC Index -->
+      <div class="card" id="card-voc">
         <div class="card-header">
           <div class="card-icon"><i data-lucide="flask-conical"></i></div>
           VOC INDEX
         </div>
-        <div>
+        <div class="card-body">
           <div class="card-value" id="val-voc">--</div>
+          <div class="card-status" id="status-voc">Awaiting data</div>
         </div>
       </div>
 
-    </section>
-
-    <!-- Control Center -->
-    <section class="control-center">
-      <div class="control-header">
-        <h2>Control Center</h2>
-        <div class="mode-toggle-group">
-          <button class="mode-btn" id="btn-auto">AUTOMATIC</button>
-          <button class="mode-btn" id="btn-manual">MANUAL</button>
+      <!-- Temperature and Humidity -->
+      <div class="card pm-detail-card" id="card-environment-detail">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="thermometer"></i></div>
+          ENVIRONMENT
         </div>
-      </div>
-
-      <div class="controls-grid">
-        <div class="control-item">
-          <div class="control-info">
-            <div class="card-icon"><i data-lucide="plug"></i></div>
-            <div class="control-text">
-              <div class="title">OUTLET #1</div>
-              <div class="status" id="text-relay1">--</div>
-            </div>
+        <div class="pm-mini-grid">
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">TEMPERATURE</div>
+            <div class="pm-mini-val" id="val-temp">-- <span>°C</span></div>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="switch-relay1" disabled>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="control-item">
-          <div class="control-info">
-            <div class="card-icon"><i data-lucide="plug"></i></div>
-            <div class="control-text">
-              <div class="title">OUTLET #2</div>
-              <div class="status" id="text-relay2">--</div>
-            </div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="switch-relay2" disabled>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="control-item">
-          <div class="control-info">
-            <div class="card-icon"><i data-lucide="volume-x"></i></div>
-            <div class="control-text">
-              <div class="title">SILENT MODE</div>
-              <div class="status" id="text-silent">--</div>
-            </div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="switch-silent" disabled>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-    </section>
-
-    <!-- Insights Section -->
-    <section class="insights-grid">
-      <div class="insight-card">
-        <h3>Dynamic Insights</h3>
-        <div class="insight-body">
-          <div class="card-icon"><i data-lucide="wind"></i></div>
-          <div class="insight-desc">
-            <strong style="color: #ffffff; font-size: 11px; letter-spacing: 0.5px;">AIR QUALITY ANALYSIS</strong>
-            <p id="insight-text" style="margin-top: 4px;">Waiting for hardware telemetry to generate insights...</p>
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">HUMIDITY</div>
+            <div class="pm-mini-val" id="val-humidity">-- <span>%</span></div>
           </div>
         </div>
       </div>
 
-      <div class="insight-card">
-        <h3>Actionable Recommendations</h3>
-        <div class="insight-body">
-          <div class="card-icon"><i data-lucide="check-circle-2"></i></div>
-          <div class="insight-desc">
-            <strong style="color: #ffffff; font-size: 11px; letter-spacing: 0.5px;">SYSTEM STATUS</strong>
-            <p id="recommendation-text" style="margin-top: 4px;">Hardware disconnected. Please power on the AeroCube device.</p>
+      <!-- Additional PM readings -->
+      <div class="card pm-detail-card" id="card-pm-detail">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="grid"></i></div>
+          PARTICULATE MATTER
+        </div>
+        <div class="pm-mini-grid">
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">PM 2.5</div>
+            <div class="pm-mini-val" id="val-pm25">-- <span>µg/m³</span></div>
+          </div>
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">PM 10</div>
+            <div class="pm-mini-val" id="val-pm10">-- <span>µg/m³</span></div>
+          </div>
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">PM 1.0</div>
+            <div class="pm-mini-val" id="val-pm1">-- <span>µg/m³</span></div>
+          </div>
+          <div class="pm-mini-box">
+            <div class="pm-mini-label">PM 4.0</div>
+            <div class="pm-mini-val" id="val-pm4">-- <span>µg/m³</span></div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Recommendations Section -->
+    <section class="recommendations-section">
+      <div class="section-header">
+        <h2><i data-lucide="lightbulb"></i> Air Quality Recommendations</h2>
+      </div>
+      <div class="recommendations-content" id="recommendations-content">
+        <p class="rec-waiting">Waiting for telemetry data to generate recommendations...</p>
+      </div>
+    </section>
+
+        <!-- Indoor Air Quality Guide -->
+    <section class="guide-section">
+      <div class="guide-header">
+        <h2><i data-lucide="book-open-check"></i> Indoor Air Quality Guide</h2>
+        <p class="guide-subtitle">Simple ways to keep your indoor air healthy</p>
+      </div>
+
+      <div class="guide-body">
+        <!-- Tips -->
+        <div class="guide-tips">
+          <div class="guide-tip">
+            <div class="guide-tip-icon"><i data-lucide="wind"></i></div>
+            <div>
+              <strong>Ventilate regularly</strong>
+              <p>Open windows or use mechanical ventilation when CO<sub>2</sub> rises.</p>
+            </div>
+          </div>
+
+          <div class="guide-tip">
+            <div class="guide-tip-icon"><i data-lucide="spray-can"></i></div>
+            <div>
+              <strong>Reduce VOC sources</strong>
+              <p>Limit smoke, strong fragrances, aerosols, and harsh cleaning products.</p>
+            </div>
+          </div>
+
+          <div class="guide-tip">
+            <div class="guide-tip-icon"><i data-lucide="air-vent"></i></div>
+            <div>
+              <strong>Control particles</strong>
+              <p>Reduce dust and smoke, and use air filtration when PM AQI is elevated.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reference table -->
+        <div class="guide-reference">
+          <h3>Reading the measurements</h3>
+          <div class="guide-table-wrap">
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Good</th>
+                  <th>Elevated</th>
+                  <th>Poor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CO<sub>2</sub></td>
+                  <td class="g-good">&lt; 1000 ppm</td>
+                  <td class="g-elevated">1000–1499 ppm</td>
+                  <td class="g-poor">1500+ ppm</td>
+                </tr>
+                <tr>
+                  <td>VOC</td>
+                  <td class="g-good">&lt; 150</td>
+                  <td class="g-elevated">150–249</td>
+                  <td class="g-poor">250+</td>
+                </tr>
+                <tr>
+                  <td>PM AQI</td>
+                  <td class="g-good">0–100</td>
+                  <td class="g-elevated">101–150</td>
+                  <td class="g-poor">151+</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+    
 
   </main>
 
   <script>lucide.createIcons();</script>
+  <script src="pwa.js"></script>
   <script type="module" src="script.js"></script>
-
 </body>
 </html>

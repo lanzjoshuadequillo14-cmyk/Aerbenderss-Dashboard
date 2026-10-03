@@ -109,6 +109,11 @@ body {
   width: 68px;
 }
 
+.install-app-item {
+  background: transparent;
+  border: 0;
+}
+
 .nav-item i {
   width: 20px;
   height: 20px;

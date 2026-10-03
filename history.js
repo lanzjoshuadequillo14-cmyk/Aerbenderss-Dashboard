@@ -1,82 +1,54 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+// ============================================================
+//  history.js — History page with time-range filtering
+// ============================================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBQP8psXqOg-yb1eQDXzONoEXV1CnIUAp0",
-  authDomain: "aerocube-db.firebaseapp.com",
-  databaseURL: "https://aerocube-db-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "aerocube-db",
-  storageBucket: "aerocube-db.firebasestorage.app",
-  messagingSenderId: "531621525535",
-  appId: "1:531621525535:web:4fdfba99e7827790eafd2a",
-  measurementId: "G-0NSQ3R1HE7"
-};
+import { db, auth, BASE_PATH } from './firebase.js';
+import { ref, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.lucide) {
-    lucide.createIcons();
-  }
-  initHamburgerMenu();
+// --- AUTH ---
+onAuthStateChanged(auth, (user) => {
+  if (!user) window.location.href = 'Registration.html';
 });
 
-// Helper function to safely extract metric values (checks nested 'pm' object and top-level)
-function extractPMMetric(item, possibleKeys) {
-  if (!item || typeof item !== 'object') return '--';
+document.getElementById('btn-logout')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  try { await signOut(auth); window.location.href = 'Registration.html'; }
+  catch (err) { console.error("Logout error:", err); }
+});
 
-  // 1. Check inside nested 'pm' node (e.g. item.pm.pm1p0)
-  if (item.pm && typeof item.pm === 'object') {
-    for (const key of possibleKeys) {
-      if (item.pm[key] !== undefined && item.pm[key] !== null && item.pm[key] !== '') {
-        return item.pm[key];
-      }
-    }
-  }
+// --- MOBILE MENU ---
+const menuToggle = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+const aeroCubePath = '/Aerocubes/' + (localStorage.getItem('aerocube-id') || BASE_PATH.split('/').pop());
 
-  // 2. Fallback to top-level properties (e.g. item.pm1p0)
-  for (const key of possibleKeys) {
-    if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
-      return item[key];
-    }
-  }
+menuToggle?.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); });
+overlay?.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
 
-  return '--';
-}
+// ============================================================
+//  STATE
+// ============================================================
+let currentTimeRange = 'today';
+let allHistoryData = [];
 
-// Authentication & Route Protection
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    try {
-      const userRef = ref(db, 'users/' + user.uid);
-      const snapshot = await get(userRef);
-      
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        
-        // Show admin link and clear button if user is admin
-        if (userData.role === 'admin') {
-          const navAdmin = document.getElementById('nav-admin');
-          const btnClear = document.getElementById('btn-clear-history');
-          if (navAdmin) navAdmin.style.display = 'flex';
-          if (btnClear) btnClear.style.display = 'inline-block';
-        }
-      }
-      
-      // Load stored database entries from Aerocubes path
-      loadHistoryData();
-    } catch (err) {
-      console.error("Auth error:", err);
-    }
-  } else {
-    window.location.href = 'Registration.html';
+document.getElementById('btn-clear-history')?.addEventListener('click', async () => {
+  const confirmed = window.confirm('Clear all history for this AeroCube? This cannot be undone.');
+  if (!confirmed) return;
+
+  try {
+    await remove(ref(db, aeroCubePath + '/history'));
+    allHistoryData = [];
+    renderTable();
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    window.alert('Unable to clear history. Please try again.');
   }
 });
 
-// Helper function to decode Firebase push ID into approximate epoch timestamp
+// ============================================================
+//  DECODE FIREBASE PUSH ID TO TIMESTAMP
+// ============================================================
 function getTimestampFromPushId(pushId) {
   const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
   let time = 0;
@@ -86,184 +58,150 @@ function getTimestampFromPushId(pushId) {
   return time;
 }
 
-// Fetch and Render History Logs from 'Aerocubes' Node
-function loadHistoryData() {
-  const aerocubesRef = ref(db, 'Aerocubes');
+// ============================================================
+//  FILTER DATA BY TIME RANGE
+// ============================================================
+function filterByTimeRange(data, range) {
+  const now = Date.now();
+  let cutoff;
+  if (range === 'today') {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    cutoff = startOfDay.getTime();
+  } else if (range === '7d') {
+    cutoff = now - (7 * 24 * 60 * 60 * 1000);
+  } else if (range === '30d') {
+    cutoff = now - (30 * 24 * 60 * 60 * 1000);
+  } else {
+    cutoff = 0;
+  }
+  return data.filter(item => item.timestamp >= cutoff);
+}
+
+// ============================================================
+//  GET STATUS BADGE CLASS
+// ============================================================
+function getStatusBadgeClass(status) {
+  const s = (status || 'NORMAL').toUpperCase();
+  if (s === 'POOR' || s === 'CRITICAL' || s === 'BAD' || s === 'UNHEALTHY') return 'poor';
+  if (s === 'ELEVATED' || s === 'WARNING' || s === 'MODERATE') return 'elevated';
+  return 'good';
+}
+
+// ============================================================
+//  LOAD HISTORY DATA FROM FIREBASE
+// ============================================================
+async function loadHistoryData() {
   const container = document.getElementById('history-table-container');
 
-  onValue(aerocubesRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const aerocubesData = snapshot.val();
-      const allHistoryEntries = [];
-
-      // Loop through each Aerocube device (e.g., aerocube_01)
-      for (const deviceId in aerocubesData) {
-        const device = aerocubesData[deviceId];
-
-        // Check if the device has a history node
-        if (device && device.history) {
-          const historyLogs = device.history;
-
-          for (const logKey in historyLogs) {
-            const log = historyLogs[logKey];
-            
-            // Extract or derive timestamp safely
-            let calculatedTime = log.timestamp || log.time || log.created_at;
-            if (!calculatedTime && logKey.startsWith('-')) {
-              calculatedTime = getTimestampFromPushId(logKey);
-            }
-
-            allHistoryEntries.push({
-              id: logKey,
-              deviceId: deviceId,
-              derivedTimestamp: calculatedTime || 0,
-              ...log
-            });
-          }
-        } else if (device) {
-          // Fallback: If no history sub-node exists yet, include current root readings
-          allHistoryEntries.push({
-            id: deviceId,
-            deviceId: deviceId,
-            derivedTimestamp: device.lastUpdated || device.timestamp || Date.now(),
-            ...device
-          });
-        }
-      }
-
-      if (allHistoryEntries.length === 0) {
-        container.innerHTML = "<p style='color: #64748b; font-size: 14px;'>No historical data records found inside device history logs.</p>";
-        return;
-      }
-
-      // Sort entries by timestamp (most recent first)
-      allHistoryEntries.sort((a, b) => b.derivedTimestamp - a.derivedTimestamp);
-
-      let tableHTML = `
-        <table style="width: 100%; text-align: left; border-collapse: collapse; min-width: 850px;">
-          <thead>
-            <tr style="border-bottom: 2px solid #1e293b; color: #94a3b8; font-size: 13px;">
-              <th style="padding: 12px 16px;">TIMESTAMP</th>
-              <th style="padding: 12px 16px;">DEVICE / ROOM</th>
-              <th style="padding: 12px 16px;">TEMPERATURE</th>
-              <th style="padding: 12px 16px;">HUMIDITY</th>
-              <th style="padding: 12px 16px;">CO2 (PPM)</th>
-              <th style="padding: 12px 16px;">VOC INDEX</th>
-              <th style="padding: 12px 16px;">PM 1 / 2.5 / 4 / 10</th>
-              <th style="padding: 12px 16px;">AIR QUALITY</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-
-      allHistoryEntries.forEach((item) => {
-        // Format Timestamp cleanly
-        let formattedTime = 'N/A';
-        if (item.derivedTimestamp) {
-          const dateObj = new Date(item.derivedTimestamp);
-          formattedTime = isNaN(dateObj.getTime()) ? 'N/A' : dateObj.toLocaleString();
-        }
-
-        // Room/Device identifier mapping
-        const deviceLabel = item.room || item.location || item.deviceId;
-
-        // Extract accurate parameters matching database structure
-        const temp = item.temperature !== undefined ? `${item.temperature}°C` : (item.temp !== undefined ? `${item.temp}°C` : '--');
-        const humidity = item.humidity !== undefined ? `${item.humidity}%` : (item.hum !== undefined ? `${item.hum}%` : '--');
-        const co2Val = item.co2 !== undefined ? item.co2 : '--';
-        const vocVal = item.VOCidx !== undefined ? item.VOCidx : (item.voc !== undefined ? item.voc : '--');
-        
-        // Extract Particulate Matter (PM) readings from nested 'pm' object or flat keys
-        const pm1 = extractPMMetric(item, ['pm1p0', 'pm1_0', 'pm1', 'PM1_0']);
-        const pm25 = extractPMMetric(item, ['pm2p5', 'pm2_5', 'pm25', 'PM2_5']);
-        const pm4 = extractPMMetric(item, ['pm4p0', 'pm4_0', 'pm4', 'PM4_0']);
-        const pm10 = extractPMMetric(item, ['pm10p0', 'pm10_0', 'pm10', 'PM10_0']);
-        const pmFormatted = `${pm1} / ${pm25} / ${pm4} / ${pm10}`;
-
-        // Match exact property name for air quality status
-        const status = item.airQualityStatus || item.status || 'NORMAL';
-
-        // Dynamic badge styling based on air quality status
-        let statusStyle = 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);';
-        const upperStatus = String(status).toUpperCase();
-        
-        if (upperStatus === 'MODERATE' || upperStatus === 'WARNING' || upperStatus === 'POOR') {
-          statusStyle = 'background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3);';
-        } else if (upperStatus === 'BAD' || upperStatus === 'UNHEALTHY' || upperStatus === 'CRITICAL' || upperStatus === 'DANGER') {
-          statusStyle = 'background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);';
-        }
-
-        tableHTML += `
-          <tr style="border-bottom: 1px solid #1e293b; transition: background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-            <td style="padding: 16px; font-size: 13px; color: #e2e8f0; font-family: monospace;">${formattedTime}</td>
-            <td style="padding: 16px; font-size: 14px; color: #94a3b8; font-weight: 500;">${deviceLabel}</td>
-            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${temp}</td>
-            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${humidity}</td>
-            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${co2Val}</td>
-            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${vocVal}</td>
-            <td style="padding: 16px; font-size: 14px; color: #e2e8f0;">${pmFormatted}</td>
-            <td style="padding: 16px;">
-              <span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; ${statusStyle}">${upperStatus}</span>
-            </td>
-          </tr>
-        `;
-      });
-
-      tableHTML += `</tbody></table>`;
-      container.innerHTML = tableHTML;
-    } else {
-      container.innerHTML = "<p style='color: #64748b; font-size: 14px;'>No 'Aerocubes' node found in database.</p>";
+  try {
+    const snapshot = await get(ref(db, aeroCubePath + '/history'));
+    if (!snapshot.exists()) {
+      allHistoryData = [];
+      renderTable();
+      return;
     }
-  });
+
+    const historyObj = snapshot.val();
+    const entries = [];
+
+    for (const key in historyObj) {
+      const log = historyObj[key];
+      let timestamp = log.timestamp || log.time || log.created_at;
+      if (!timestamp && key.startsWith('-')) {
+        timestamp = getTimestampFromPushId(key);
+      }
+      entries.push({ ...log, timestamp: timestamp || 0 });
+    }
+
+    entries.sort((a, b) => b.timestamp - a.timestamp);
+    allHistoryData = entries;
+    renderTable();
+  } catch (err) {
+    console.error("Error loading history:", err);
+    container.innerHTML = '<div class="history-empty"><i data-lucide="alert-circle"></i><p>Error loading data from Firebase.</p></div>';
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
-// Clear History Button Handler for all Aerocubes (Admins only)
-document.getElementById('btn-clear-history')?.addEventListener('click', async () => {
-  if (confirm("Are you sure you want to permanently clear history logs across all Aerocubes?")) {
-    try {
-      const snapshot = await get(ref(db, 'Aerocubes'));
-      if (snapshot.exists()) {
-        const aerocubes = snapshot.val();
-        for (const deviceId in aerocubes) {
-          await remove(ref(db, `Aerocubes/${deviceId}/history`));
-        }
-        alert("All history logs cleared successfully.");
-      }
-    } catch (err) {
-      console.error("Clear history error:", err);
-      alert("Failed to clear history.");
-    }
+// ============================================================
+//  RENDER TABLE
+// ============================================================
+function renderTable() {
+  const container = document.getElementById('history-table-container');
+  const filtered = filterByTimeRange(allHistoryData, currentTimeRange);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="history-empty">
+        <i data-lucide="inbox"></i>
+        <p>Not enough historical data available for this time range.</p>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    return;
   }
+
+  let tableHTML = `
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>TIME</th>
+          <th>CO₂</th>
+          <th>PM 2.5</th>
+          <th>PM 10</th>
+          <th>PM AQI</th>
+          <th>VOC</th>
+          <th>TEMP</th>
+          <th>HUMIDITY</th>
+          <th>AIR QUALITY</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  filtered.forEach((item) => {
+    const formattedTime = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'N/A';
+    const co2 = item.co2 !== undefined ? item.co2 : '--';
+    const pm25 = (item.pm && item.pm.pm2p5 !== undefined) ? item.pm.pm2p5 : '--';
+    const pm10 = (item.pm && item.pm.pm10p0 !== undefined) ? item.pm.pm10p0 : '--';
+    const pmAqi = (item.pm && item.pm.pmAQI !== undefined) ? item.pm.pmAQI : '--';
+    const voc = item.VOCidx !== undefined ? item.VOCidx : '--';
+    const temp = item.temp !== undefined ? item.temp + '°C' : '--';
+    const humidity = item.humidity !== undefined ? item.humidity + '%' : '--';
+    const status = item.airQualityStatus || 'NORMAL';
+    const badgeClass = getStatusBadgeClass(status);
+
+    tableHTML += `
+      <tr>
+        <td style="font-family: monospace; color: #cbd5e1;">${formattedTime}</td>
+        <td>${co2}</td>
+        <td>${pm25}</td>
+        <td>${pm10}</td>
+        <td>${pmAqi}</td>
+        <td>${voc}</td>
+        <td>${temp}</td>
+        <td>${humidity}</td>
+        <td><span class="status-badge ${badgeClass}">${status.toUpperCase()}</span></td>
+      </tr>
+    `;
+  });
+
+  tableHTML += '</tbody></table>';
+  container.innerHTML = tableHTML;
+}
+
+// ============================================================
+//  TIME RANGE BUTTON HANDLERS
+// ============================================================
+document.querySelectorAll('[data-range]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTimeRange = btn.dataset.range;
+    renderTable();
+  });
 });
 
-// Navigation Toggle & Logout Setup
-function initHamburgerMenu() {
-  const menuToggle = document.getElementById('menuToggle');
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-
-  if (menuToggle && sidebar && overlay) {
-    const toggleMenu = () => {
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('active');
-    };
-    menuToggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleMenu();
-    });
-    overlay.addEventListener('click', toggleMenu);
-  }
-
-  const btnLogout = document.getElementById('btn-logout');
-  if (btnLogout) {
-    btnLogout.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        await signOut(auth);
-        window.location.href = 'Registration.html';
-      } catch (err) {
-        console.error("Logout error:", err);
-      }
-    });
-  }
-}
+// --- LOAD DATA ON STARTUP ---
+loadHistoryData();

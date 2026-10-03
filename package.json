@@ -1,0 +1,10 @@
+{
+  "name": "aerocube-portal",
+  "version": "1.0.0",
+  "description": "AeroCube indoor air quality monitoring dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  }
+}

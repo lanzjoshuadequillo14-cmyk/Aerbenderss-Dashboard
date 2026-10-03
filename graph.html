@@ -1,160 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aerocube - Telemetry Graph & History</title>
-  
-  <link rel="stylesheet" href="graph.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AeroCube | Analytics</title>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
 </head>
 <body>
 
-  <!-- Mobile Header -->
   <div class="mobile-top-bar">
-    <button class="menu-toggle-btn" id="menuToggleBtn">
-      <i data-lucide="menu"></i>
-    </button>
-    <div class="mobile-brand">AeroCube</div>
+    <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    <span class="mobile-brand">AeroCube</span>
   </div>
 
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- Narrow Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand-box">
-      <div class="brand-logo">
-        <img src="logo/aerocube logo.png" alt="AC" onerror="this.style.display='none'">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+      </div>
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+        <a href="graph.html" class="nav-item active"><i data-lucide="line-chart"></i><span>Analytics</span></a>
+        <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="aeroplug.html" class="nav-item"><i data-lucide="plug"></i><span>AeroPlug</span></a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
       </div>
     </div>
-    
-    <ul class="sidebar-menu">
-      <li><a href="index.html"><i data-lucide="layout-grid"></i><span>Dashboard</span></a></li>
-      <li><a href="Graph.html" class="active"><i data-lucide="line-chart"></i><span>Graph</span></a></li>
-      <li><a href="history.html"><i data-lucide="info"></i><span>History</span></a></li>
-      <li><a href="settings.html"><i data-lucide="settings"></i><span>Settings</span></a></li>
-    </ul>
-
-    <ul class="sidebar-footer-menu">
-      <li><a href="about.html"><i data-lucide="help-circle"></i><span>About</span></a></li>
-      <li><a href="#" id="btn-logout" class="logout-link"><i data-lucide="log-out"></i><span>Logout</span></a></li>
-    </ul>
+    <div class="sidebar-footer">
+      <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden>
+        <i data-lucide="download"></i><span>Install App</span>
+      </button>
+      <a href="about.html" class="nav-item"><i data-lucide="help-circle"></i><span>About</span></a>
+      <a href="#" id="btn-logout" class="nav-item logout-link"><i data-lucide="log-out"></i><span>Logout</span></a>
+    </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main-content">
-    <header>
-      <h1>Telemetry Visualizer & History Log</h1>
-      <div class="header-actions">
-        <button id="btn-clear-history" class="btn btn-danger" style="display: none;">Clear History</button>
+    <header class="header">
+      <div class="header-title">
+        <h1>Analytics</h1>
+        <p class="header-subtitle">Historical sensor data visualization</p>
+      </div>
+      <div class="header-badges">
+        <div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
       </div>
     </header>
 
-    <!-- Graph Cards Grid -->
-    <div class="metrics-grid">
-      
-      <!-- Temperature Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="thermometer"></i> Temperature</div>
-          <div id="badge-temp" class="live-badge badge-blue">--°C</div>
+    <!-- Trend Analysis -->
+    <section class="aeroplug-section">
+      <div class="section-header">
+        <h2><i data-lucide="line-chart"></i> Trend Analysis</h2>
+        <div class="chart-controls">
+          <div class="mode-toggle-group">
+            <button class="mode-btn active" data-range="24h">24 HOURS</button>
+            <button class="mode-btn" data-range="7d">7 DAYS</button>
+            <button class="mode-btn" data-range="month">MONTH</button>
+          </div>
+          <button class="btn-danger" id="btn-clear-history" type="button">
+            <i data-lucide="trash-2"></i> Clear History
+          </button>
         </div>
-        <div class="chart-container">
-          <canvas id="chart-temp"></canvas>
+      </div>
+      <div class="trend-group">
+        <h3>Air Quality</h3>
+        <div class="trend-summary-grid">
+          <article class="trend-summary-card" id="summary-co2">
+            <h4>CO₂</h4>
+            <div class="trend-stat"><span>Average</span><strong id="average-co2">--</strong></div>
+            <div class="trend-stat"><span>Highest</span><strong id="highest-co2">--</strong></div>
+            <div class="trend-stat"><span>Lowest</span><strong id="lowest-co2">--</strong></div>
+          </article>
+          <article class="trend-summary-card" id="summary-voc">
+            <h4>VOC Index</h4>
+            <div class="trend-stat"><span>Average</span><strong id="average-voc">--</strong></div>
+            <div class="trend-stat"><span>Highest</span><strong id="highest-voc">--</strong></div>
+            <div class="trend-stat"><span>Lowest</span><strong id="lowest-voc">--</strong></div>
+          </article>
+          <article class="trend-summary-card" id="summary-pmaqi">
+            <h4>PM AQI</h4>
+            <div class="trend-stat"><span>Average</span><strong id="average-pmaqi">--</strong></div>
+            <div class="trend-stat"><span>Highest</span><strong id="highest-pmaqi">--</strong></div>
+            <div class="trend-stat"><span>Lowest</span><strong id="lowest-pmaqi">--</strong></div>
+          </article>
+        </div>
+        <div class="trend-chart-grid">
+          <div class="trend-chart-card"><h4>CO₂</h4><div class="chart-wrapper"><canvas id="chart-co2"></canvas><div class="chart-empty" id="empty-co2">No data</div></div></div>
+          <div class="trend-chart-card"><h4>VOC Index</h4><div class="chart-wrapper"><canvas id="chart-voc"></canvas><div class="chart-empty" id="empty-voc">No data</div></div></div>
+          <div class="trend-chart-card"><h4>PM AQI</h4><div class="chart-wrapper"><canvas id="chart-pmaqi"></canvas><div class="chart-empty" id="empty-pmaqi">No data</div></div></div>
         </div>
       </div>
 
-      <!-- Humidity Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="droplets"></i> Humidity</div>
-          <div id="badge-hum" class="live-badge badge-purple">--%</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-hum"></canvas>
+      <div class="trend-group">
+        <h3>Environment</h3>
+        <div class="trend-chart-grid environment-grid">
+          <div class="trend-chart-card"><h4>Temperature</h4><div class="chart-wrapper"><canvas id="chart-temp"></canvas><div class="chart-empty" id="empty-temp">No data</div></div></div>
+          <div class="trend-chart-card"><h4>Humidity</h4><div class="chart-wrapper"><canvas id="chart-humidity"></canvas><div class="chart-empty" id="empty-humidity">No data</div></div></div>
         </div>
       </div>
-
-      <!-- CO2 Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="wind"></i> Carbon Dioxide</div>
-          <div id="badge-co2" class="live-badge badge-green">-- PPM</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-co2"></canvas>
-        </div>
-      </div>
-
-      <!-- VOC Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="flask-conical"></i> VOC Index</div>
-          <div id="badge-voc" class="live-badge badge-yellow">--</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-voc"></canvas>
-        </div>
-      </div>
-
-      <!-- PM 1.0 Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="activity"></i> PM 1.0</div>
-          <div id="badge-pm1" class="live-badge badge-blue">-- µg</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-pm1"></canvas>
-        </div>
-      </div>
-
-      <!-- PM 2.5 Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="activity"></i> PM 2.5</div>
-          <div id="badge-pm25" class="live-badge badge-red">-- µg</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-pm25"></canvas>
-        </div>
-      </div>
-
-      <!-- PM 4.0 Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="activity"></i> PM 4.0</div>
-          <div id="badge-pm4" class="live-badge badge-yellow">-- µg</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-pm4"></canvas>
-        </div>
-      </div>
-
-      <!-- PM 10 Card -->
-      <div class="card">
-        <div class="card-header-flex">
-          <div class="metric-title"><i data-lucide="activity"></i> PM 10</div>
-          <div id="badge-pm10" class="live-badge badge-purple">-- µg</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="chart-pm10"></canvas>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- History Table -->
-    <div class="card table-card">
-      <div class="card-title">System Logs Database</div>
-      <div class="table-container" id="history-table-container">
-        <p class="loading-text">Loading historical database records...</p>
-      </div>
-    </div>
+    </section>
   </main>
 
+  <script>lucide.createIcons();</script>
+  <script src="pwa.js"></script>
   <script type="module" src="graph.js"></script>
 </body>
 </html>

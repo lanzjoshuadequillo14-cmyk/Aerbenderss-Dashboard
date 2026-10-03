@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AeroCube | AeroPlug Control</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    <span class="mobile-brand">AeroCube</span>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+      </div>
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+        <a href="graph.html" class="nav-item"><i data-lucide="line-chart"></i><span>Analytics</span></a>
+        <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="aeroplug.html" class="nav-item active"><i data-lucide="plug"></i><span>AeroPlug</span></a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden>
+        <i data-lucide="download"></i><span>Install App</span>
+      </button>
+      <a href="about.html" class="nav-item"><i data-lucide="help-circle"></i><span>About</span></a>
+      <a href="#" id="btn-logout" class="nav-item logout-link"><i data-lucide="log-out"></i><span>Logout</span></a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="header-title">
+        <h1>AeroPlug Control</h1>
+        <p class="header-subtitle">Manage connected devices and operating mode</p>
+      </div>
+      <div class="header-badges">
+        <div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
+      </div>
+    </header>
+
+    <!-- Operating Mode -->
+    <section class="aeroplug-section">
+      <div class="section-header">
+        <h2><i data-lucide="settings-2"></i> Operating Mode</h2>
+        <div class="mode-toggle-group">
+          <button class="mode-btn active" id="btn-auto">AUTOMATIC</button>
+          <button class="mode-btn" id="btn-manual">MANUAL</button>
+        </div>
+      </div>
+      <div class="aeroplug-content">
+        <div class="auto-mode-info" id="auto-mode-info">
+          <div class="auto-mode-label">AUTOMATIC MODE</div>
+          <p>AeroCube automatically controls the connected devices according to the configured thresholds.</p>
+          <div class="auto-rules">
+            <div class="auto-rule"><strong>Relay 1:</strong> Activates when CO₂ ≥ CO₂ threshold OR PM2.5 AQI ≥ PM AQI threshold</div>
+            <div class="auto-rule"><strong>Relay 2:</strong> Activates when VOC Index ≥ VOC threshold</div>
+          </div>
+        </div>
+        <div class="auto-mode-info hidden" id="manual-mode-info">
+          <div class="auto-mode-label" style="color: var(--accent-yellow);">MANUAL MODE</div>
+          <p>Relays are controlled manually using the switches below. The AeroCube will not automatically activate devices based on sensor readings.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AeroPlug Device Status -->
+    <section class="aeroplug-section">
+      <div class="section-header">
+        <h2><i data-lucide="plug"></i> Connected Devices</h2>
+      </div>
+      <div class="aeroplug-content">
+        <div class="aeroplug-status-row">
+          <div class="aeroplug-name">
+            <span class="aeroplug-indicator" id="aeroplug-indicator"></span>
+            AeroPlug 01
+          </div>
+          <div class="aeroplug-status-details">
+            <span class="aeroplug-online-text" id="aeroplug-online-text">Checking...</span>
+            <span class="aeroplug-last-seen" id="aeroplug-last-seen">Last data received: --</span>
+          </div>
+        </div>
+
+        <div class="relay-controls">
+          <div class="relay-item">
+            <div class="relay-info">
+              <div class="card-icon"><i data-lucide="plug"></i></div>
+              <div>
+                <div class="relay-title">Relay 1</div>
+                <div class="relay-state" id="text-relay1">--</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="switch-relay1" disabled>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="relay-item">
+            <div class="relay-info">
+              <div class="card-icon"><i data-lucide="plug"></i></div>
+              <div>
+                <div class="relay-title">Relay 2</div>
+                <div class="relay-state" id="text-relay2">--</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="switch-relay2" disabled>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>lucide.createIcons();</script>
+  <script src="pwa.js"></script>
+  <script type="module" src="aeroplug.js"></script>
+</body>
+</html>

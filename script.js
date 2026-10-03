@@ -1,55 +1,11 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+// ============================================================
+//  script.js — AeroCube Dashboard main logic
+//  Imports shared Firebase config from firebase.js
+// ============================================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBQP8psXqOg-yb1eQDXzONoEXV1CnIUAp0",
-  authDomain: "aerocube-db.firebaseapp.com",
-  databaseURL: "https://aerocube-db-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "aerocube-db",
-  storageBucket: "aerocube-db.firebasestorage.app",
-  messagingSenderId: "531621525535",
-  appId: "1:531621525535:web:4fdfba99e7827790eafd2a",
-  measurementId: "G-0NSQ3R1HE7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
-
-const BASE_PATH = '/Aerocubes/aerocube_01'; 
-
-// Target DOM Elements
-const valAqi = document.getElementById('val-aqi');
-const subAqi = document.getElementById('sub-aqi');
-const valTemp = document.getElementById('val-temp');
-const subTemp = document.getElementById('sub-temp');
-const valHumidity = document.getElementById('val-humidity');
-const subHumidity = document.getElementById('sub-humidity');
-const valCo2 = document.getElementById('val-co2');
-const valVoc = document.getElementById('val-voc');
-const valPm10 = document.getElementById('val-pm10');
-const valPm25 = document.getElementById('val-pm25');
-const valPm40 = document.getElementById('val-pm40');
-const valPm100 = document.getElementById('val-pm100');
-const valStatus = document.getElementById('val-status');
-const aqiStatusBadge = document.getElementById('aqi-status-badge');
-
-// Controls & Insight Elements
-const btnAuto = document.getElementById('btn-auto');
-const btnManual = document.getElementById('btn-manual');
-const switchRelay1 = document.getElementById('switch-relay1');
-const switchRelay2 = document.getElementById('switch-relay2');
-const switchSilent = document.getElementById('switch-silent');
-const textRelay1 = document.getElementById('text-relay1');
-const textRelay2 = document.getElementById('text-relay2');
-const textSilent = document.getElementById('text-silent');
-const insightText = document.getElementById('insight-text');
-const recommendationText = document.getElementById('recommendation-text');
-const btnLogout = document.getElementById('btn-logout');
-
-// User Display Element (Add <div id="users-container"></div> in your HTML)
-const usersContainer = document.getElementById('users-container');
+import { db, auth, BASE_PATH } from './firebase.js';
+import { ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // --- AUTHENTICATION CHECK ---
 onAuthStateChanged(auth, (user) => {
@@ -58,320 +14,464 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// --- LOGOUT FUNCTIONALITY ---
-if (btnLogout) {
-  btnLogout.addEventListener('click', async (e) => {
-    e.preventDefault();
-    try {
-      await signOut(auth);
-      window.location.href = 'Registration.html';
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-  });
+// --- LOGOUT ---
+document.getElementById('btn-logout')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  try {
+    await signOut(auth);
+    window.location.href = 'Registration.html';
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
+});
+
+// --- MOBILE MENU TOGGLE ---
+const menuToggle = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+
+const savedAeroCubeId = localStorage.getItem('aerocube-id') || BASE_PATH.split('/').pop();
+const aeroCubePath = '/Aerocubes/' + savedAeroCubeId;
+
+const deviceSelectorForm = document.getElementById('device-selector-form');
+const aerocubeIdInput = document.getElementById('aerocube-id');
+const deviceName = document.getElementById('device-name');
+
+if (aerocubeIdInput) aerocubeIdInput.value = savedAeroCubeId;
+if (deviceName) deviceName.innerText = savedAeroCubeId;
+
+deviceSelectorForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const cubeId = aerocubeIdInput.value.trim();
+  const validId = /^[A-Za-z0-9_-]+$/;
+  if (!validId.test(cubeId)) return;
+  localStorage.setItem('aerocube-id', cubeId);
+  window.location.reload();
+});
+
+function toggleMenu() {
+  sidebar?.classList.toggle('open');
+  overlay?.classList.toggle('active');
+}
+menuToggle?.addEventListener('click', toggleMenu);
+overlay?.addEventListener('click', toggleMenu);
+
+// ============================================================
+//  DOM ELEMENT REFERENCES
+// ============================================================
+const valCo2 = document.getElementById('val-co2');
+const valPm25 = document.getElementById('val-pm25');
+const valPmAqi = document.getElementById('val-pmaqi');
+const valVoc = document.getElementById('val-voc');
+const valPm10 = document.getElementById('val-pm10');
+const valTemp = document.getElementById('val-temp');
+const valHumidity = document.getElementById('val-humidity');
+const valPm1 = document.getElementById('val-pm1');
+const valPm4 = document.getElementById('val-pm4');
+
+const statusCo2 = document.getElementById('status-co2');
+const statusPm25 = document.getElementById('status-pm25');
+const statusPmAqi = document.getElementById('status-pmaqi');
+const statusVoc = document.getElementById('status-voc');
+const statusPm10 = document.getElementById('status-pm10');
+
+const aqBanner = document.getElementById('aq-banner');
+const aqBannerStatus = document.getElementById('aq-banner-status');
+const aqBannerDesc = document.getElementById('aq-banner-desc');
+
+const deviceIndicator = document.getElementById('device-indicator');
+const deviceLastSeen = document.getElementById('device-last-seen');
+const deviceConnBadge = document.getElementById('device-connection-badge');
+const deviceStatusText = document.getElementById('device-status-text');
+
+const switchBuzzer = document.getElementById('switch-buzzer');
+const textBuzzer = document.getElementById('text-buzzer');
+const notificationButton = document.getElementById('btn-notifications');
+
+const recContent = document.getElementById('recommendations-content');
+const notificationStates = {};
+let previousConnectionState = null;
+
+function updateNotificationButton() {
+  if (!notificationButton || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    notificationButton.classList.add('enabled');
+    notificationButton.classList.remove('denied');
+    notificationButton.innerHTML = '<i data-lucide="bell-ring"></i><span>Notifications Enabled</span>';
+  } else if (Notification.permission === 'denied') {
+    notificationButton.classList.add('denied');
+    notificationButton.classList.remove('enabled');
+    notificationButton.innerHTML = '<i data-lucide="bell-off"></i><span>Notifications Blocked</span>';
+  }
+  if (window.lucide) lucide.createIcons();
 }
 
-// --- FETCH & DISPLAY USERS FROM FIREBASE REALTIME DATABASE ---
-if (usersContainer) {
-  onValue(ref(db, 'users'), (snapshot) => {
-    const usersData = snapshot.val();
-    
-    if (!usersData) {
-      usersContainer.innerHTML = '<p style="color: #64748b;">No registered users found.</p>';
-      return;
-    }
-
-    let html = '';
-    Object.keys(usersData).forEach((uid) => {
-      const user = usersData[uid];
-      html += `
-        <div class="user-item" style="background: #182232; border: 1px solid #233147; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
-          <p style="margin: 0; color: #f8fafc; font-size: 0.85rem;"><strong>Email:</strong> ${user.email || 'N/A'}</p>
-          ${user.password ? `<p style="margin: 4px 0 0; color: #38bdf8; font-size: 0.85rem;"><strong>Password:</strong> ${user.password}</p>` : ''}
-          <p style="margin: 4px 0 0; color: #64748b; font-size: 0.75rem;"><strong>UID:</strong> ${uid}</p>
-        </div>
-      `;
-    });
-
-    usersContainer.innerHTML = html;
-  });
+function sendNotification(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  new Notification(title, { body, tag: 'aerocube-alert' });
 }
 
-// Dynamic Card Border Alert helper
-function setCardStatus(element, state) {
-  if (!element) return;
-  const card = element.closest('.card');
+notificationButton?.addEventListener('click', async () => {
+  if (!('Notification' in window)) {
+    window.alert('This browser does not support notifications.');
+    return;
+  }
+  if (Notification.permission === 'default') await Notification.requestPermission();
+  updateNotificationButton();
+});
+updateNotificationButton();
+
+// ============================================================
+//  THRESHOLDS (kept in sync with the Indoor Air Quality Guide)
+//    CO2     good < 1000   | elevated 1000–1499 | poor 1500+
+//    VOC     good < 150    | elevated 150–249   | poor 250+
+//    PM AQI  good 0–100    | elevated 101–150   | poor 151+
+// ============================================================
+const THRESHOLDS = {
+  co2:   { elevated: 1000, poor: 1500 },
+  voc:   { elevated: 150,  poor: 250 },
+  pmaqi: { elevated: 101,  poor: 151 }
+};
+
+// ============================================================
+//  HELPER FUNCTIONS
+// ============================================================
+
+// Set card border + status pill color based on state
+function setCardVisual(cardId, state) {
+  const card = document.getElementById(cardId);
   if (!card) return;
-
-  card.classList.remove('border-good', 'border-moderate', 'border-critical');
-  if (state === 'good') card.classList.add('border-good');
-  else if (state === 'moderate') card.classList.add('border-moderate');
-  else if (state === 'critical') card.classList.add('border-critical');
+  card.classList.remove('border-good', 'border-elevated', 'border-poor');
+  if (state) card.classList.add('border-' + state);
 }
 
-// Helper function for PM threshold updates
-function updatePmBox(pmElement, value, moderateThreshold, criticalThreshold) {
-    if (value === undefined || !pmElement) return; 
-    
-    pmElement.innerHTML = `${value} <span>µg/m³</span>`;
-    
-    const pmBox = pmElement.closest('.pm-box');
-    const pmLabel = pmBox ? pmBox.querySelector('.pm-label') : null;
-    
-    if (value >= criticalThreshold) {
-        pmElement.style.color = '#ef4444'; 
-        if (pmLabel) pmLabel.style.color = '#ef4444'; 
-        if (pmBox) {
-            pmBox.classList.add('highlight');
-            pmBox.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-            pmBox.style.background = 'rgba(239, 68, 68, 0.05)';
-        }
-    } else if (value >= moderateThreshold) {
-        pmElement.style.color = '#eab308'; 
-        if (pmLabel) pmLabel.style.color = '#eab308';
-        if (pmBox) {
-            pmBox.classList.add('highlight');
-            pmBox.style.borderColor = 'rgba(234, 179, 8, 0.4)';
-            pmBox.style.background = 'rgba(234, 179, 8, 0.05)';
-        }
-    } else {
-        pmElement.style.color = '#ffffff'; 
-        if (pmLabel) pmLabel.style.color = '#64748b'; 
-        if (pmBox) {
-            pmBox.classList.remove('highlight');
-            pmBox.style.borderColor = '#233147';
-            pmBox.style.background = '#182232';
-        }
-    }
+function setStatusPill(element, state, label) {
+  if (!element) return;
+  element.className = 'card-status ' + (state || '');
+  element.innerText = label;
 }
 
-// Standard EPA PM2.5 AQI Calculation Helper
-function calculatePM25AQI(pm25) {
-  if (pm25 === undefined || pm25 === null) return null;
-  const c = Math.floor(pm25 * 10) / 10;
-  
-  if (c <= 12.0) {
-    return { aqi: Math.round(((50 - 0) / 12.0) * c), status: 'Good', color: '#10b981', state: 'good' };
-  } else if (c <= 35.4) {
-    return { aqi: Math.round(((100 - 51) / (35.4 - 12.1)) * (c - 12.1) + 51), status: 'Moderate', color: '#eab308', state: 'moderate' };
-  } else if (c <= 55.4) {
-    return { aqi: Math.round(((150 - 101) / (55.4 - 35.5)) * (c - 35.5) + 101), status: 'Unhealthy (Sensitive)', color: '#f97316', state: 'moderate' };
-  } else if (c <= 150.4) {
-    return { aqi: Math.round(((200 - 151) / (150.4 - 55.5)) * (c - 55.5) + 151), status: 'Unhealthy', color: '#ef4444', state: 'critical' };
-  } else if (c <= 250.4) {
-    return { aqi: Math.round(((300 - 201) / (250.4 - 150.5)) * (c - 150.5) + 201), status: 'Very Unhealthy', color: '#a855f7', state: 'critical' };
-  } else {
-    return { aqi: Math.round(((500 - 301) / (500.4 - 250.5)) * (c - 250.5) + 301), status: 'Hazardous', color: '#78350f', state: 'critical' };
+// Determine CO2 status from value
+function getCo2Status(co2) {
+  if (co2 >= THRESHOLDS.co2.poor) return { state: 'poor', label: 'POOR' };
+  if (co2 >= THRESHOLDS.co2.elevated) return { state: 'elevated', label: 'ELEVATED' };
+  return { state: 'good', label: 'NORMAL' };
+}
+
+// Determine PM2.5 status
+function getPm25Status(pm25) {
+  if (pm25 >= 35) return { state: 'poor', label: 'POOR' };
+  if (pm25 >= 12) return { state: 'elevated', label: 'ELEVATED' };
+  return { state: 'good', label: 'GOOD' };
+}
+
+// Determine PM10 status
+function getPm10Status(pm10) {
+  if (pm10 >= 50) return { state: 'poor', label: 'POOR' };
+  if (pm10 >= 25) return { state: 'elevated', label: 'ELEVATED' };
+  return { state: 'good', label: 'GOOD' };
+}
+
+// Determine PM AQI status from firmware value
+function getPmAqiStatus(aqi) {
+  if (aqi >= THRESHOLDS.pmaqi.poor) return { state: 'poor', label: 'POOR' };
+  if (aqi >= THRESHOLDS.pmaqi.elevated) return { state: 'elevated', label: 'ELEVATED' };
+  return { state: 'good', label: 'GOOD' };
+}
+
+// Determine VOC status
+function getVocStatus(voc) {
+  if (voc >= THRESHOLDS.voc.poor) return { state: 'poor', label: 'POOR' };
+  if (voc >= THRESHOLDS.voc.elevated) return { state: 'elevated', label: 'ELEVATED' };
+  return { state: 'good', label: 'NORMAL' };
+}
+
+// Map firmware airQualityStatus to banner state + description
+function getAirQualityBannerInfo(statusStr) {
+  const s = (statusStr || '').toUpperCase();
+  if (s === 'GOOD') {
+    return {
+      state: 'good',
+      label: 'GOOD',
+      desc: 'All monitored parameters are currently within the defined thresholds.'
+    };
+  }
+  if (s === 'ELEVATED') {
+    return {
+      state: 'elevated',
+      label: 'ELEVATED',
+      desc: 'One or more monitored parameters have exceeded the elevated threshold.'
+    };
+  }
+  if (s === 'POOR') {
+    return {
+      state: 'poor',
+      label: 'POOR',
+      desc: 'One or more monitored parameters have reached the poor-air-quality threshold.'
+    };
+  }
+  return { state: null, label: '--', desc: 'Awaiting data from AeroCube device...' };
+}
+
+// Check if device is online based on lastSeen timestamp (within 60 seconds)
+function checkDeviceOnline(lastSeen) {
+  if (!lastSeen) return false;
+  const now = Date.now();
+  const diffSeconds = Math.floor((now - lastSeen) / 1000);
+  return diffSeconds < 60;
+}
+
+// Format "time ago" text
+function timeAgo(timestamp) {
+  if (!timestamp) return '--';
+  const now = Date.now();
+  const diff = Math.floor((now - timestamp) / 1000);
+  if (diff < 60) return diff + ' seconds ago';
+  if (diff < 3600) return Math.floor(diff / 60) + ' minutes ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+  return Math.floor(diff / 86400) + ' days ago';
+}
+
+function clearStaleSensorData() {
+  notificationStates.co2 = null;
+  notificationStates.voc = null;
+  notificationStates.pmaqi = null;
+  valCo2.innerHTML = '-- <span>ppm</span>';
+  valPm25.innerHTML = '-- <span>µg/m³</span>';
+  valPmAqi.innerHTML = '-- <span>AQI</span>';
+  valVoc.innerText = '--';
+  valPm10.innerHTML = '-- <span>µg/m³</span>';
+  valTemp.innerHTML = '-- <span>°C</span>';
+  valHumidity.innerHTML = '-- <span>%</span>';
+  valPm1.innerHTML = '-- <span>µg/m³</span>';
+  valPm4.innerHTML = '-- <span>µg/m³</span>';
+
+  [
+    ['status-co2', 'No data'],
+    ['status-pm25', 'No data'],
+    ['status-pmaqi', 'No data'],
+    ['status-voc', 'No data'],
+    ['status-pm10', 'No data']
+  ].forEach(([statusId, label]) => setStatusPill(document.getElementById(statusId), '', label));
+
+  ['card-co2', 'card-pm25', 'card-pmaqi', 'card-voc', 'card-pm10'].forEach(cardId => setCardVisual(cardId, null));
+  aqBanner.className = 'aq-status-banner';
+  aqBannerStatus.innerText = 'NO DATA';
+  aqBannerDesc.innerText = 'Waiting for data from AeroCube device...';
+  recContent.innerHTML = '<p class="rec-waiting">Waiting for telemetry data...</p>';
+}
+
+function updateDeviceConnectionStatus(lastSeen) {
+  const online = checkDeviceOnline(lastSeen);
+  deviceLastSeen.innerText = lastSeen
+    ? 'Last data received: ' + timeAgo(lastSeen)
+    : 'Last data received: --';
+  deviceIndicator.className = 'device-indicator ' + (online ? 'connected' : 'disconnected');
+  deviceConnBadge.className = 'badge badge-device ' + (online ? 'online' : 'offline');
+  deviceStatusText.innerText = online ? 'CONNECTED' : 'DISCONNECTED';
+  if (previousConnectionState !== null && previousConnectionState !== online) {
+    sendNotification(
+      online ? 'AeroCube connected' : 'AeroCube disconnected',
+      online ? 'Live sensor data has resumed.' : 'No sensor data has been received for over 60 seconds.'
+    );
+  }
+  previousConnectionState = online;
+  if (!online) clearStaleSensorData();
+}
+
+function notifyMetricState(metricKey, state, title, detail) {
+  if (notificationStates[metricKey] === state) return;
+  const previousState = notificationStates[metricKey];
+  notificationStates[metricKey] = state;
+  if (previousState && previousState !== state) {
+    sendNotification(title, detail);
+  } else if (!previousState && state !== 'good') {
+    sendNotification(title, detail);
   }
 }
 
-// 1. Listen for Live Telemetry from Hardware
-onValue(ref(db, `${BASE_PATH}/telemetry`), (snapshot) => {
+// Round long sensor decimals for display only
+const fmt = (v, d = 1) => (typeof v === 'number' ? Number(v.toFixed(d)) : v);
+
+// ============================================================
+//  1. LISTEN FOR LIVE TELEMETRY
+// ============================================================
+onValue(ref(db, aeroCubePath + '/telemetry'), (snapshot) => {
   const data = snapshot.val();
-  if (!data) return; 
+  if (!data) return;
 
-  // --- UPDATE AQI CARD ---
-  let computedAqi = data.aqi !== undefined ? { aqi: data.aqi } : calculatePM25AQI(data.pm ? data.pm.pm2p5 : undefined);
-  if (valAqi && computedAqi) {
-    valAqi.innerHTML = `${computedAqi.aqi} <span>AQI</span>`;
-    valAqi.style.color = computedAqi.color || '#ffffff';
-    if (subAqi) {
-      subAqi.innerText = computedAqi.status || 'Live reading';
-      subAqi.style.color = computedAqi.color || '#94a3b8';
-    }
-    setCardStatus(valAqi, computedAqi.state || 'good');
-  }
+  // --- Overall Air Quality Banner ---
+  const bannerInfo = getAirQualityBannerInfo(data.airQualityStatus);
+  aqBanner.className = 'aq-status-banner state-' + (bannerInfo.state || '');
+  aqBannerStatus.innerText = bannerInfo.label;
+  aqBannerDesc.innerText = bannerInfo.desc;
 
-  // --- UPDATE METRICS UI & CARD STYLES ---
-  if (data.temp !== undefined && valTemp) {
-    valTemp.innerHTML = `${data.temp} <span>°C</span>`;
-    if (subTemp) subTemp.innerText = `Live reading`;
-    setCardStatus(valTemp, data.temp >= 30 || data.temp <= 18 ? 'moderate' : 'good');
-  }
-
-  if (data.humidity !== undefined && valHumidity) {
-    valHumidity.innerHTML = `${data.humidity} <span>%</span>`;
-    if (subHumidity) subHumidity.innerText = `Live reading`;
-    setCardStatus(valHumidity, data.humidity >= 70 || data.humidity <= 30 ? 'moderate' : 'good');
-  }
-
-  if (data.co2 !== undefined && valCo2) {
-    valCo2.innerHTML = `${data.co2} <span>ppm</span>`;
-    setCardStatus(valCo2, data.co2 >= 1500 ? 'critical' : data.co2 >= 1000 ? 'moderate' : 'good');
-  }
-
-  if (data.VOCidx !== undefined && valVoc) {
-    valVoc.innerText = data.VOCidx;
-    const vocState = data.VOCidx >= 250 ? 'critical' : data.VOCidx >= 150 ? 'moderate' : 'good';
-    valVoc.style.color = data.VOCidx >= 250 ? '#ef4444' : data.VOCidx >= 150 ? '#eab308' : '#ffffff';
-    setCardStatus(valVoc, vocState);
-  }
-  
-  if (data.pm) {
-    updatePmBox(valPm10, data.pm.pm1p0, 35, 55);
-    updatePmBox(valPm25, data.pm.pm2p5, 35, 55);
-    updatePmBox(valPm40, data.pm.pm4p0, 35, 55);
-    updatePmBox(valPm100, data.pm.pm10p0, 50, 100); 
-  }
-
-  // --- INSIGHTS & RECOMMENDATIONS ---
-  let insights = [];
-  let recs = [];
-
-  // Temperature
-  if (data.temp !== undefined) {
-      if (data.temp >= 30) {
-          insights.push(`<strong>Temperature:</strong> The room is very hot (${data.temp}°C), which can make you feel tired or uncomfortable.`);
-          recs.push(`<strong>Temperature:</strong> Turn on a fan, open a window to let a breeze in, or use an air conditioner if you have one.`);
-      } else if (data.temp <= 18) {
-          insights.push(`<strong>Temperature:</strong> The room is quite cold (${data.temp}°C).`);
-          recs.push(`<strong>Temperature:</strong> Close open windows to keep the warmth inside, or turn on a heater.`);
-      } else {
-          insights.push(`<strong>Temperature:</strong> The room temperature is comfortable and safe.`);
-          recs.push(`<strong>Temperature:</strong> No action needed.`);
-      }
-  }
-
-  // Humidity
-  if (data.humidity !== undefined) {
-      if (data.humidity >= 70) {
-          insights.push(`<strong>Humidity:</strong> The air is very damp (${data.humidity}%). This can feel muggy and might cause mold to grow on walls or fabrics.`);
-          recs.push(`<strong>Humidity:</strong> Open windows to improve airflow, or turn on an exhaust fan or dehumidifier to dry the air.`);
-      } else if (data.humidity <= 30) {
-          insights.push(`<strong>Humidity:</strong> The air is very dry (${data.humidity}%), which can dry out your skin, eyes, and throat.`);
-          recs.push(`<strong>Humidity:</strong> Consider using a humidifier or placing a bowl of water in the room to add moisture back into the air.`);
-      } else {
-          insights.push(`<strong>Humidity:</strong> The moisture level in the air is well-balanced.`);
-          recs.push(`<strong>Humidity:</strong> No action needed.`);
-      }
-  }
-
-  // CO2
+  // --- CO2 ---
   if (data.co2 !== undefined) {
-      if (data.co2 >= 1000) {
-          insights.push(`<strong>Air Freshness (CO2):</strong> The room is getting stuffy (${data.co2} ppm). Breathing in stale air can cause headaches, sleepiness, and make it hard to focus.`);
-          recs.push(`<strong>Air Freshness (CO2):</strong> Open doors and windows to let fresh air inside. If there are many people in the room, consider taking a short break outside.`);
-      } else {
-          insights.push(`<strong>Air Freshness (CO2):</strong> The air is fresh and well-ventilated.`);
-          recs.push(`<strong>Air Freshness (CO2):</strong> Keep the room properly ventilated as it currently is.`);
-      }
+    valCo2.innerHTML = data.co2 + ' <span>ppm</span>';
+    const s = getCo2Status(data.co2);
+    setStatusPill(statusCo2, s.state, s.label);
+    setCardVisual('card-co2', s.state);
+    notifyMetricState('co2', s.state, 'CO₂ level alert', 'CO₂ is ' + s.label.toLowerCase() + '. Current value: ' + data.co2 + ' ppm.');
   }
 
-  // VOC
+  // --- PM2.5 ---
+  if (data.pm && data.pm.pm2p5 !== undefined) {
+    valPm25.innerHTML = fmt(data.pm.pm2p5) + ' <span>µg/m³</span>';
+    const s = getPm25Status(data.pm.pm2p5);
+    setStatusPill(statusPm25, s.state, s.label);
+    setCardVisual('card-pm25', s.state);
+  }
+
+  // --- PM AQI (from firmware) ---
+  if (data.pm && data.pm.pmAQI !== undefined) {
+    valPmAqi.innerHTML = data.pm.pmAQI + ' <span>AQI</span>';
+    const s = getPmAqiStatus(data.pm.pmAQI);
+    setStatusPill(statusPmAqi, s.state, s.label);
+    setCardVisual('card-pmaqi', s.state);
+    notifyMetricState('pmaqi', s.state, 'PM AQI alert', 'PM AQI is ' + s.label.toLowerCase() + '. Current value: ' + data.pm.pmAQI + '.');
+  }
+
+  // --- VOC Index ---
   if (data.VOCidx !== undefined) {
-      if (data.VOCidx >= 150) {
-          insights.push(`<strong>Odors & Chemicals (VOC):</strong> Strong smells or chemicals are detected in the air. This can irritate your eyes, nose, and throat.`);
-          recs.push(`<strong>Odors & Chemicals (VOC):</strong> Find the source (like open paint cans, strong perfumes, or cleaning sprays) and close it. Open windows immediately to clear the air out.`);
-      } else {
-          insights.push(`<strong>Odors & Chemicals (VOC):</strong> Chemical and odor levels are low and safe.`);
-          recs.push(`<strong>Odors & Chemicals (VOC):</strong> No action needed. Continue using household products safely.`);
-      }
+    valVoc.innerText = data.VOCidx;
+    const s = getVocStatus(data.VOCidx);
+    setStatusPill(statusVoc, s.state, s.label);
+    setCardVisual('card-voc', s.state);
+    notifyMetricState('voc', s.state, 'VOC level alert', 'VOC Index is ' + s.label.toLowerCase() + '. Current value: ' + data.VOCidx + '.');
   }
 
-  // PM
+  // --- PM10 ---
+  if (data.pm && data.pm.pm10p0 !== undefined) {
+    valPm10.innerHTML = fmt(data.pm.pm10p0) + ' <span>µg/m³</span>';
+    const s = getPm10Status(data.pm.pm10p0);
+    setStatusPill(statusPm10, s.state, s.label);
+    setCardVisual('card-pm10', s.state);
+  }
+
+  // --- Temperature ---
+  if (data.temp !== undefined) {
+    valTemp.innerHTML = fmt(data.temp) + ' <span>°C</span>';
+  }
+
+  // --- Humidity ---
+  if (data.humidity !== undefined) {
+    valHumidity.innerHTML = data.humidity + ' <span>%</span>';
+  }
+
+  // --- Additional PM (1.0 and 4.0) ---
   if (data.pm) {
-      const isHighPm = (data.pm.pm1p0 >= 35 || data.pm.pm2p5 >= 35 || data.pm.pm4p0 >= 35 || data.pm.pm10p0 >= 50);
-      if (isHighPm) {
-          insights.push(`<strong>Particulate Matter (PM):</strong> There is a high amount of fine dust or smoke floating in the air. This is unhealthy to breathe in.`);
-          recs.push(`<strong>Particulate Matter (PM):</strong> Stop activities that create dust, like sweeping. If the smoke is coming from outside (like traffic or burning leaves), close your windows. Consider wearing a mask if you are sensitive to dust.`);
-      } else {
-          insights.push(`<strong>Particulate Matter (PM):</strong> The air is clear of heavy dust and smoke particles.`);
-          recs.push(`<strong>Particulate Matter (PM):</strong> No action needed.`);
-      }
+    if (data.pm.pm1p0 !== undefined) valPm1.innerHTML = fmt(data.pm.pm1p0) + ' <span>µg/m³</span>';
+    if (data.pm.pm4p0 !== undefined) valPm4.innerHTML = fmt(data.pm.pm4p0) + ' <span>µg/m³</span>';
   }
 
-  // Render Insights and Recommendations to DOM
-  if (insightText && recommendationText) {
-    const listStyle = "display: flex; flex-direction: column; gap: 0.75rem; color: #94a3b8; font-size: 0.88rem; line-height: 1.5;";
-    insightText.innerHTML = `<div style="${listStyle}">${insights.map(i => `<div>${i}</div>`).join('')}</div>`;
-    recommendationText.innerHTML = `<div style="${listStyle}">${recs.map(r => `<div>${r}</div>`).join('')}</div>`;
-  }
-
-  // Air Quality Status Check
-  let status = (data.airQualityStatus || 'NORMAL').toUpperCase();
-  if (!data.airQualityStatus) {
-      if (data.co2 >= 1500 || data.VOCidx >= 250 || (data.pm && data.pm.pm2p5 >= 55)) status = 'CRITICAL';
-      else if (data.co2 >= 1000 || data.VOCidx >= 150 || (data.pm && data.pm.pm2p5 >= 35)) status = 'WARNING';
-  }
-  
-  if (valStatus) valStatus.innerText = `STATUS: ${status}`;
-
-  if (aqiStatusBadge) {
-      if (status === 'CRITICAL' || status === 'BAD') {
-        aqiStatusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
-        aqiStatusBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-        aqiStatusBadge.style.color = '#ef4444';
-      } else if (status === 'WARNING' || status === 'MODERATE') {
-        aqiStatusBadge.style.background = 'rgba(234, 179, 8, 0.1)';
-        aqiStatusBadge.style.borderColor = 'rgba(234, 179, 8, 0.3)';
-        aqiStatusBadge.style.color = '#eab308';
-      } else {
-        aqiStatusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
-        aqiStatusBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        aqiStatusBadge.style.color = '#10b981';
-      }
-  }
+  // --- Recommendations ---
+  updateRecommendations(data);
 
   if (window.lucide) lucide.createIcons();
 });
 
-// 2. Listen for Controls Status from Hardware
-onValue(ref(db, `${BASE_PATH}/controls`), (snapshot) => {
+// ============================================================
+//  2. LISTEN FOR DEVICE METADATA (lastSeen)
+// ============================================================
+onValue(ref(db, aeroCubePath + '/metadata'), (snapshot) => {
+  const meta = snapshot.val();
+  const lastSeen = meta ? meta.lastSeen : null;
+  updateDeviceConnectionStatus(lastSeen);
+});
+
+// Periodically refresh the "time ago" text
+setInterval(() => {
+  onValue(ref(db, aeroCubePath + '/metadata/lastSeen'), (snapshot) => updateDeviceConnectionStatus(snapshot.val()));
+}, 15000);
+
+// ============================================================
+//  3. LISTEN FOR AEROCUBE CONTROLS
+// ============================================================
+onValue(ref(db, aeroCubePath + '/controls'), (snapshot) => {
   const controls = snapshot.val();
   if (!controls) return;
 
-  if (controls.isAutoMode !== undefined) {
-    if (controls.isAutoMode) {
-      if(btnAuto) btnAuto.classList.add('active');
-      if(btnManual) btnManual.classList.remove('active');
-      if(switchRelay1) switchRelay1.disabled = true;
-      if(switchRelay2) switchRelay2.disabled = true;
-    } else {
-      if(btnManual) btnManual.classList.add('active');
-      if(btnAuto) btnAuto.classList.remove('active');
-      if(switchRelay1) switchRelay1.disabled = false;
-      if(switchRelay2) switchRelay2.disabled = false;
-    }
-  }
-
-  if (controls.manualRelay1 !== undefined && switchRelay1) {
-    switchRelay1.checked = controls.manualRelay1;
-    if(textRelay1) textRelay1.innerText = controls.manualRelay1 ? 'ACTIVE' : 'INACTIVE';
-  }
-  
-  if (controls.manualRelay2 !== undefined && switchRelay2) {
-    switchRelay2.checked = controls.manualRelay2;
-    if(textRelay2) textRelay2.innerText = controls.manualRelay2 ? 'ACTIVE' : 'INACTIVE';
-  }
-
-  if (controls.isBuzzerSilenced !== undefined && switchSilent) {
-    switchSilent.checked = controls.isBuzzerSilenced;
-    if(textSilent) textSilent.innerText = controls.isBuzzerSilenced ? 'ON' : 'OFF';
+  // Buzzer silenced
+  if (controls.isBuzzerSilenced !== undefined && switchBuzzer) {
+    // Switch ON = buzzer enabled (NOT silenced)
+    switchBuzzer.checked = !controls.isBuzzerSilenced;
+    textBuzzer.innerText = controls.isBuzzerSilenced ? 'SILENCED' : 'ON';
+    switchBuzzer.disabled = false;
   }
 });
 
-// 3. Dispatch Controls back to Firebase
-function updateControls(newPartialState) {
-  update(ref(db, `${BASE_PATH}/controls`), newPartialState);
+// ============================================================
+//  5. WRITE CONTROLS BACK TO FIREBASE
+// ============================================================
+function updateControls(partialState) {
+  update(ref(db, aeroCubePath + '/controls'), partialState);
 }
 
-if(btnAuto) btnAuto.addEventListener('click', () => updateControls({ isAutoMode: true }));
-if(btnManual) btnManual.addEventListener('click', () => updateControls({ isAutoMode: false }));
-if(switchRelay1) switchRelay1.addEventListener('change', (e) => updateControls({ manualRelay1: e.target.checked }));
-if(switchRelay2) switchRelay2.addEventListener('change', (e) => updateControls({ manualRelay2: e.target.checked }));
-if(switchSilent) switchSilent.addEventListener('change', (e) => updateControls({ isBuzzerSilenced: e.target.checked }));
+// Buzzer: checked = ON (enabled), unchecked = SILENCED
+switchBuzzer?.addEventListener('change', (e) => {
+  updateControls({ isBuzzerSilenced: !e.target.checked });
+});
 
-// Mobile hamburger menu toggle
-const menuToggle = document.getElementById('menuToggle');
-const sidebar = document.querySelector('.sidebar');
-const overlay = document.getElementById('sidebarOverlay');
+// ============================================================
+//  6. RECOMMENDATIONS ENGINE (uses the same thresholds as the cards)
+// ============================================================
+function updateRecommendations(data) {
+  const recs = [];
 
-function toggleMenu() {
-  if (sidebar) sidebar.classList.toggle('open');
-  if (overlay) overlay.classList.toggle('active');
-}
+  // CO2 recommendation
+  if (data.co2 !== undefined && data.co2 >= THRESHOLDS.co2.elevated) {
+    const isPoor = data.co2 >= THRESHOLDS.co2.poor;
+    recs.push({
+      state: isPoor ? 'poor' : 'elevated',
+      icon: 'wind',
+      title: isPoor ? 'CO₂ concentration is poor.' : 'CO₂ concentration is elevated.',
+      text: 'Consider improving indoor ventilation or activating the connected ventilation device.'
+    });
+  }
 
-if (menuToggle && sidebar && overlay) {
-  menuToggle.addEventListener('click', toggleMenu);
-  overlay.addEventListener('click', toggleMenu);
+  // Particulate matter recommendation (based on PM AQI)
+  if (data.pm && data.pm.pmAQI !== undefined && data.pm.pmAQI >= THRESHOLDS.pmaqi.elevated) {
+    const isPoor = data.pm.pmAQI >= THRESHOLDS.pmaqi.poor;
+    recs.push({
+      state: isPoor ? 'poor' : 'elevated',
+      icon: 'circle-dot',
+      title: isPoor ? 'Particulate concentration is poor.' : 'Particulate concentration is elevated.',
+      text: 'Consider reducing indoor particulate sources and improving ventilation or filtration.'
+    });
+  }
+
+  // VOC recommendation
+  if (data.VOCidx !== undefined && data.VOCidx >= THRESHOLDS.voc.elevated) {
+    const isPoor = data.VOCidx >= THRESHOLDS.voc.poor;
+    recs.push({
+      state: isPoor ? 'poor' : 'elevated',
+      icon: 'flask-conical',
+      title: isPoor ? 'VOC levels are poor.' : 'VOC levels are elevated.',
+      text: 'Consider checking for possible indoor sources of volatile compounds and improving ventilation.'
+    });
+  }
+
+  // If everything is normal
+  if (recs.length === 0) {
+    recs.push({
+      state: 'good',
+      icon: 'check-circle',
+      title: 'Air quality is within thresholds.',
+      text: 'Indoor air quality is currently within the configured thresholds. Continue normal ventilation practices.'
+    });
+  }
+
+  // Render recommendations
+  recContent.innerHTML = recs.map(r => `
+    <div class="rec-item rec-${r.state}">
+      <div class="rec-icon"><i data-lucide="${r.icon}"></i></div>
+      <div class="rec-text">
+        <strong>${r.title}</strong>
+        <p>${r.text}</p>
+      </div>
+    </div>
+  `).join('');
+
+  if (window.lucide) lucide.createIcons();
 }
