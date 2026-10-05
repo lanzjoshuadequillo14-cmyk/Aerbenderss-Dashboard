@@ -1588,3 +1588,7 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 480px) {
   #toast-stack { left: 16px; right: 16px; width: auto; }
 }
+
+
+.toast p { white-space: pre-line; }
+
