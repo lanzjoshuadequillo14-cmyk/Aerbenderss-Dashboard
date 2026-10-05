@@ -289,7 +289,7 @@ notificationButton?.addEventListener('click', async () => {
   if (Notification.permission === 'granted') {
     sendNotification(
       'AeroCube notifications are on',
-      'You will be alerted when CO₂, VOC or PM AQI changes between good, elevated and poor.',
+      'You will be alerted when CO₂, VOC or PM AQI changes between good, reaches the limit, or becomes poor.',
       'aerocube-test',
       'good'
     );
@@ -690,39 +690,39 @@ const DEFAULT_RECOMMENDATIONS = {
     icon: 'wind',
     elevated: {
       title: 'CO₂ concentration is elevated.',
-      text: 'Open a window or turn on ventilation.'
+      text: 'Elevated carbon dioxide detected. Please briefly open nearby windows or doors to allow fresh air circulation'
     },
     poor: {
       title: 'CO₂ concentration is poor.',
-      text: 'Open windows and doors now.'
+      text: 'Unhealthy CO2 accumulation. Evacuate the room temporarily and quickly open windows to flush stagnant air.'
     }
   },
   pmaqi: {
     icon: 'circle-dot',
     elevated: {
       title: 'Particulate concentration is elevated.',
-      text: 'Cut down dust and smoke. Use an air filter if you have one.'
+      text: 'Elevated fine dust or smoke. Cover cooking pots and refrain from burning incense indoors.'
     },
     poor: {
       title: 'Particulate concentration is poor.',
-      text: 'Remove the smoke or dust source and run an air filter.'
+      text: 'Unhealthy particulate density. Minimize the source of particulate matter such as dust, smoke, etc. Close exterior windows if road dust or ash is present outside.'
     }
   },
   voc: {
     icon: 'flask-conical',
     elevated: {
       title: 'VOC levels are elevated.',
-      text: 'Avoid sprays, paint and strong cleaners. Let fresh air in.'
+      text: 'Moderate chemical vapors present. Open windows or doors to ventilate the area.'
     },
     poor: {
       title: 'VOC levels are poor.',
-      text: 'Stop using sprays or cleaners, and open windows now.'
+      text: 'Heavy chemical saturation. Open windows or doors to quickly vent chemical plumes. Wear facemask if necessary.'
     }
   },
   good: {
     icon: 'check-circle',
     title: 'Air quality is within thresholds.',
-    text: 'Air is within the normal range. Keep up your normal ventilation.'
+    text: 'Air quality is optimal. Maintain current ventilation or manually open windows to enjoy fresh air.'
   }
 };
 
