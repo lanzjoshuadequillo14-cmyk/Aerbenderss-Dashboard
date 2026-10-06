@@ -690,39 +690,39 @@ const DEFAULT_RECOMMENDATIONS = {
     icon: 'wind',
     elevated: {
       title: 'CO₂ concentration is elevated.',
-      text: 'Elevated carbon dioxide detected. Please briefly open nearby windows or doors to allow fresh air circulation'
+      text: 'Elevated CO₂ detected. Improve ventilation by briefly opening nearby windows or doors, when appropriate'
     },
     poor: {
-      title: 'CO₂ concentration is poor.',
-      text: 'Unhealthy CO2 accumulation. Evacuate the room temporarily and quickly open windows to flush stagnant air.'
+      title: 'CO₂ concentration is High.',
+      text: 'High CO₂ level detected. Improve ventilation by opening nearby windows or doors, when appropriate, and allow fresh air to circulate.'
     }
   },
   pmaqi: {
     icon: 'circle-dot',
     elevated: {
       title: 'Particulate concentration is elevated.',
-      text: 'Elevated fine dust or smoke. Cover cooking pots and refrain from burning incense indoors.'
+      text: 'Elevated particulate matter detected. Reduce potential sources such as dust, smoke, cooking emissions, or incense.'
     },
     poor: {
-      title: 'Particulate concentration is poor.',
-      text: 'Unhealthy particulate density. Minimize the source of particulate matter such as dust, smoke, etc. Close exterior windows if road dust or ash is present outside.'
+      title: 'Particulate concentration is High.',
+      text: 'High particulate matter detected. Reduce or remove nearby sources of dust, smoke, cooking emissions, or other particulate matter. If outdoor air is contributing to the problem, consider closing exterior windows.'
     }
   },
   voc: {
     icon: 'flask-conical',
     elevated: {
       title: 'VOC levels are elevated.',
-      text: 'Moderate chemical vapors present. Open windows or doors to ventilate the area.'
+      text: 'Elevated VOC Index detected. Improve ventilation by opening nearby windows or doors, when appropriate.'
     },
     poor: {
-      title: 'VOC levels are poor.',
-      text: 'Heavy chemical saturation. Open windows or doors to quickly vent chemical plumes. Wear facemask if necessary.'
+      title: 'VOC levels are High.',
+      text: 'High VOC Index detected. Improve ventilation and, when possible, identify and reduce potential indoor sources such as solvents, strong fragrances, smoke, or cleaning products.'
     }
   },
   good: {
     icon: 'check-circle',
     title: 'Air quality is within thresholds.',
-    text: 'Air quality is optimal. Maintain current ventilation or manually open windows to enjoy fresh air.'
+    text: 'Air quality is currently classified as GOOD. Maintain adequate ventilation and normal indoor practices.'
   }
 };
 
