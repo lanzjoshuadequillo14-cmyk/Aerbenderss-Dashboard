@@ -74,6 +74,20 @@ onValue(ref(db, aeroplugPath), (snapshot) => {
 
 setInterval(() => updateAeroplugStatus(aeroplugLastSeenTimestamp), 15000);
 
+// --- LISTEN FOR AEROPLUG RELAY STATE ---
+onValue(ref(db, aeroplugPath + '/state'), (snapshot) => {
+  const state = snapshot.val();
+  if (!state) return;
+  if (state.relay1 !== undefined && switchRelay1) {
+    switchRelay1.checked = state.relay1;
+    textRelay1.innerText = state.relay1 ? 'ON' : 'OFF';
+  }
+  if (state.relay2 !== undefined && switchRelay2) {
+    switchRelay2.checked = state.relay2;
+    textRelay2.innerText = state.relay2 ? 'ON' : 'OFF';
+  }
+});
+
 // --- LISTEN FOR CONTROLS ---
 onValue(ref(db, BASE_PATH + '/controls'), (snapshot) => {
   const controls = snapshot.val();
@@ -97,14 +111,6 @@ onValue(ref(db, BASE_PATH + '/controls'), (snapshot) => {
     }
   }
 
-  if (controls.manualRelay1 !== undefined && switchRelay1) {
-    switchRelay1.checked = controls.manualRelay1;
-    textRelay1.innerText = controls.manualRelay1 ? 'ON' : 'OFF';
-  }
-  if (controls.manualRelay2 !== undefined && switchRelay2) {
-    switchRelay2.checked = controls.manualRelay2;
-    textRelay2.innerText = controls.manualRelay2 ? 'ON' : 'OFF';
-  }
 });
 
 // --- WRITE CONTROLS ---
@@ -112,7 +118,11 @@ function updateControls(partialState) {
   update(ref(db, BASE_PATH + '/controls'), partialState);
 }
 
+function updateRelayCommand(relay, value) {
+  return update(ref(db, aeroplugPath + '/command'), { [relay]: value });
+}
+
 btnAuto?.addEventListener('click', () => updateControls({ isAutoMode: true }));
 btnManual?.addEventListener('click', () => updateControls({ isAutoMode: false }));
-switchRelay1?.addEventListener('change', (e) => updateControls({ manualRelay1: e.target.checked }));
-switchRelay2?.addEventListener('change', (e) => updateControls({ manualRelay2: e.target.checked }));
+switchRelay1?.addEventListener('change', (e) => updateRelayCommand('relay1', e.target.checked));
+switchRelay2?.addEventListener('change', (e) => updateRelayCommand('relay2', e.target.checked));

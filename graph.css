@@ -5,6 +5,12 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+:root {
+  --accent-green: #10b981;
+  --accent-yellow: #f59e0b;
+  --accent-red: #ef4444;
+}
+
 body {
   background-color: #0b0f17;
   color: #f8fafc;
@@ -109,7 +115,7 @@ body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-.logout-link { color: #ef4444 !important; }
+.logout-link { color: var(--accent-red) !important; }
 .logout-link:hover { background: rgba(239, 68, 68, 0.1) !important; }
 
 .mobile-top-bar { display: none; }
@@ -153,7 +159,7 @@ header h1 {
   transition: opacity 0.2s;
 }
 .btn:hover { opacity: 0.85; }
-.btn-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
 
 /* =========================================
    CARDS & GRIDS
@@ -211,9 +217,9 @@ header h1 {
 }
 .badge-blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
 .badge-purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.badge-green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.badge-yellow { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.badge-red { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
+.badge-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+.badge-yellow { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+.badge-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
 
 .chart-container {
   height: 200px;

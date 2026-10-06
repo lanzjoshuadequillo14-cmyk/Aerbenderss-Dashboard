@@ -676,7 +676,7 @@ switchBuzzer?.addEventListener('change', (e) => {
 
 // ============================================================
 //  5. RECOMMENDATIONS ENGINE (text comes from Firebase settings)
-//  Firebase path: /Aerocubes/{id}/settings/recommendations (or .../recommendation)
+//  Firebase path: /Aerocubes/{id}/settings/recommendations
 //  If a value is missing in Firebase, the default below is used.
 // ============================================================
 // Reads "recommendations" first, and also accepts the singular "recommendation"
@@ -729,15 +729,35 @@ const DEFAULT_RECOMMENDATIONS = {
 let recommendationSettings = DEFAULT_RECOMMENDATIONS;
 let latestTelemetry = null;
 
-// A plain string in Firebase is treated as the message text
+// A plain string in Firebase is treated as the message text.
 function normalizeEntry(value) {
   if (typeof value === 'string') return { text: value };
   return value && typeof value === 'object' ? value : {};
 }
 
+function normalizeFlatRecommendations(remote) {
+  if (!remote || typeof remote !== 'object') return remote;
+  return {
+    co2: {
+      elevated: remote.co2_elevated,
+      poor: remote.co2_poor
+    },
+    pmaqi: {
+      elevated: remote.pm_elevated,
+      poor: remote.pm_poor
+    },
+    voc: {
+      elevated: remote.voc_elevated,
+      poor: remote.voc_poor
+    },
+    good: remote.good
+  };
+}
+
 // Combine Firebase values with the defaults (Firebase wins when present)
 function mergeRecommendations(remote) {
   if (!remote || typeof remote !== 'object') return DEFAULT_RECOMMENDATIONS;
+  remote = normalizeFlatRecommendations(remote);
   const merged = {};
   ['co2', 'pmaqi', 'voc'].forEach(key => {
     const d = DEFAULT_RECOMMENDATIONS[key];
@@ -765,14 +785,12 @@ function safeIcon(name, fallback) {
 
 // Listen for recommendation text changes in Firebase settings
 const remoteRecommendations = [null, null];
-RECOMMENDATIONS_PATHS.forEach((path, i) => {
-  onValue(ref(db, path), (snapshot) => {
-    remoteRecommendations[i] = snapshot.val();
-    recommendationSettings = mergeRecommendations(remoteRecommendations[0] || remoteRecommendations[1]);
-    if (latestTelemetry && previousConnectionState !== false) {
-      updateRecommendations(latestTelemetry);
-    }
-  });
+onValue(ref(db, RECOMMENDATIONS_PATHS[0]), (snapshot) => {
+  remoteRecommendations[0] = snapshot.val();
+  recommendationSettings = mergeRecommendations(remoteRecommendations[0]);
+  if (latestTelemetry && previousConnectionState !== false) {
+    updateRecommendations(latestTelemetry);
+  }
 });
 
 function getLevel(value, limits) {

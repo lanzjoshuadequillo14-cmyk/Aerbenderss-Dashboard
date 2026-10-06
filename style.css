@@ -16,8 +16,7 @@
   --text-sub: #94a3b8;
   --accent-green: #10b981;
   --accent-blue: #38bdf8;
-  --accent-yellow: #eab308;
-  --accent-orange: #f97316;
+  --accent-yellow: #FACC15;
   --accent-red: #ef4444;
 }
 
@@ -422,7 +421,7 @@ body {
 
 .aq-status-banner.state-elevated {
   border-left-color: var(--accent-yellow);
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.08);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
 }
 
 .aq-status-banner.state-poor {
@@ -510,7 +509,7 @@ body {
 }
 
 .card.border-good { border-color: rgba(16, 185, 129, 0.4); }
-.card.border-elevated { border-color: rgba(234, 179, 8, 0.4); }
+.card.border-elevated { border-color: rgba(245, 158, 11, 0.4); }
 .card.border-poor { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 12px rgba(239, 68, 68, 0.1); }
 
 .card-header {
@@ -562,7 +561,7 @@ body {
 }
 
 .card-status.good { color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
-.card-status.elevated { color: var(--accent-yellow); background: rgba(234, 179, 8, 0.1); }
+.card-status.elevated { color: var(--accent-yellow); background: rgba(245, 158, 11, 0.1); }
 .card-status.poor { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
 
 /* Additional PM mini grid */
@@ -910,8 +909,8 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 .modal-icon {
   width: 56px; height: 56px;
   border-radius: 50%;
-  background: rgba(234, 179, 8, 0.1);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1016,18 +1015,18 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
   height: 18px;
   width: 18px;
   border-radius: 50%;
-  background: var(--accent-green);
+  background: var(--slider-color, var(--accent-green));
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--slider-color, var(--accent-green)) 40%, transparent);
 }
 .range-slider::-moz-range-thumb {
   height: 18px;
   width: 18px;
   border-radius: 50%;
-  background: var(--accent-green);
+  background: var(--slider-color, var(--accent-green));
   cursor: pointer;
   border: none;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--slider-color, var(--accent-green)) 40%, transparent);
 }
 
 .outlet-select-label {
@@ -1229,7 +1228,7 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 }
 
 .status-badge.good { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
-.status-badge.elevated { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); border: 1px solid rgba(234, 179, 8, 0.3); }
+.status-badge.elevated { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border: 1px solid rgba(245, 158, 11, 0.3); }
 .status-badge.poor { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
 .status-badge.normal { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
 
@@ -1366,7 +1365,7 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
   margin-top: auto;
 }
 .card-status.good     { border-color: rgba(16, 185, 129, 0.25); }
-.card-status.elevated { border-color: rgba(234, 179, 8, 0.25); }
+.card-status.elevated { border-color: rgba(245, 158, 11, 0.25); }
 .card-status.poor     { border-color: rgba(239, 68, 68, 0.25); }
 
 /* Mini boxes (Environment + Particulate Matter) */
@@ -1591,4 +1590,3 @@ input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
 
 .toast p { white-space: pre-line; }
-

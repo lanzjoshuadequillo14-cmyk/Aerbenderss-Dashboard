@@ -21,7 +21,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+        <img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
       </div>
       <div class="nav-links">
         <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
@@ -67,7 +67,6 @@
         </div>
         <button type="submit" class="device-selector-button">Save Device IDs</button>
       </form>
-      <p class="device-selector-note">Use the IDs exactly as they appear in Firebase. The dashboard and device pages will use these saved IDs.</p>
     </section>
 
     <!-- Automation Thresholds -->
@@ -79,6 +78,9 @@
       <div class="aeroplug-content">
         <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 8px;">
           Define the environmental conditions that automatically activate the connected AeroPlug devices. These thresholds are read by the ESP32 firmware to determine when to trigger the relays.
+        </p>
+        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+          Hysteresis Notice: An activated outlet will deactivate when the air-quality reading falls more than 15% below its configured threshold.
         </p>
 
         <div class="threshold-grid">
@@ -193,6 +195,35 @@
       </div>
     </section>
 
+    <!-- SCD41 CO2 Force Recalibration -->
+    <section class="aeroplug-section">
+      <div class="section-header">
+        <h2><i data-lucide="gauge"></i> SCD41 CO₂ Calibration</h2>
+      </div>
+      <div class="aeroplug-content">
+        <div class="auto-mode-info">
+          <div class="auto-mode-label" style="color: var(--accent-yellow);">SCD41 CO₂ FORCE RECALIBRATION</div>
+          <p>Force recalibration adjusts the SCD41 CO₂ sensor against fresh outdoor air.</p>
+          <p style="margin-top: 8px; font-size: 12px; color: var(--accent-yellow);">
+            <i data-lucide="triangle-alert" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
+            Ensure the device has been exposed to fresh outdoor air (400 ppm) for at least 3 minutes before calibrating.
+          </p>
+          <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The ESP32 performs the calibration. This dashboard only sends the Firebase command.</p>
+        </div>
+        <div class="outlet-controls" style="grid-template-columns: 1fr;">
+          <div class="relay-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+            <div>
+              <div class="relay-title">CO₂ Calibration Status</div>
+              <div class="relay-state" id="text-co2frc-status">Ready</div>
+            </div>
+            <button class="btn-cleaning" id="btn-co2frc" type="button">
+              <i data-lucide="refresh-cw"></i> Start CO₂ Recalibration
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="modal-overlay" id="modal-confirm" style="display: none;">
       <div class="modal-card">
         <div class="modal-icon"><i data-lucide="alert-triangle"></i></div>
@@ -202,6 +233,19 @@
         <div class="modal-buttons">
           <button class="btn-cancel" id="btn-modal-cancel" type="button">Cancel</button>
           <button class="btn-confirm" id="btn-modal-confirm" type="button">Confirm &amp; Start</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-co2frc-confirm" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-icon"><i data-lucide="alert-triangle"></i></div>
+        <h3>Confirm CO₂ Recalibration</h3>
+        <p>Ensure the device has been exposed to fresh outdoor air (400 ppm) for at least 3 minutes before calibrating.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The SCD41 will use the current outdoor-air concentration as its calibration reference.</p>
+        <div class="modal-buttons">
+          <button class="btn-cancel" id="btn-co2frc-cancel" type="button">Cancel</button>
+          <button class="btn-confirm" id="btn-co2frc-confirm" type="button">Confirm &amp; Calibrate</button>
         </div>
       </div>
     </div>

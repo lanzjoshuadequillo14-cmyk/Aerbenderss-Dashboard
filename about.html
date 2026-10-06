@@ -24,7 +24,7 @@
   <aside class="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/aerocube logo.png" alt="AeroCube Logo" onerror="this.style.display='none'">
+        <img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
       </div>
       
       <div class="nav-links">
@@ -79,6 +79,66 @@
             By utilizing industrial-grade sensors, it measures CO2 levels, Volatile Organic Compounds (VOCs), and Particulate Matter (PM1.0 to PM10.0). 
             Coupled with automated smart outlets (AeroPlugs), the system helps users mitigates poor air quality by integrated automated outlets and providing insights and actionable recommendations.
           </p>
+        </div>
+      </div>
+
+      <!-- Sensor Suite Card -->
+      <div class="card about-card sensor-suite-card" style="grid-column: 1 / -1;">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="microscope"></i></div>
+          SENSOR SUITE
+        </div>
+        <div class="sensor-suite">
+          <div class="sensor-card">
+            <img src="images/scd41.webp" alt="Sensirion SCD41" class="sensor-image">
+            <h3 class="sensor-title">Sensirion SCD41</h3>
+            <div class="sensor-section">
+              <h4>Primary Function</h4>
+              <p>Monitors absolute CO2 concentrations in parts-per-million (ppm), alongside ambient temperature and humidity.</p>
+            </div>
+            <div class="sensor-section">
+              <h4>Technology</h4>
+              <p>Photoacoustic NDIR (Non-Dispersive Infrared) Sensing.</p>
+            </div>
+            <div class="sensor-section">
+              <h4>How it Works</h4>
+              <p>An infrared emitter pulses light through the air. CO2 molecules absorb specific wavelengths, causing them to vibrate and create tiny pressure changes. A highly sensitive MEMS microphone detects these pressure changes as sound waves to determine CO2 density.</p>
+            </div>
+          </div>
+
+          <div class="sensor-card">
+            <img src="images/sps30.webp" alt="Sensirion SPS30" class="sensor-image">
+            <h3 class="sensor-title">Sensirion SPS30</h3>
+            <div class="sensor-section">
+              <h4>Primary Function</h4>
+              <p>Detects and measures airborne particulate matter mass concentration across four distinct size bins: PM1.0, PM2.5, PM4.0, and PM10.0.</p>
+            </div>
+            <div class="sensor-section">
+              <h4>Technology</h4>
+              <p>Laser Scattering (Optical Particle Counting).</p>
+            </div>
+            <div class="sensor-section">
+              <h4>How it Works</h4>
+              <p>An internal fan draws ambient air through a chamber. A focused laser beam crosses the air stream, and as particles intersect the laser, they scatter light. A photodiode captures this scattered light to calculate particle mass. It also features an automated fan-cleaning mode to prevent long-term dust accumulation.</p>
+            </div>
+          </div>
+
+          <div class="sensor-card">
+            <img src="images/sgp40.webp" alt="Sensirion SGP40" class="sensor-image">
+            <h3 class="sensor-title">Sensirion SGP40</h3>
+            <div class="sensor-section">
+              <h4>Primary Function</h4>
+              <p>Detects complex indoor air pollutants from sources like cleaning agents, paints, aerosols, and cooking fumes, translating them into a standardized 0–500 VOC Index.</p>
+            </div>
+            <div class="sensor-section">
+              <h4>Technology</h4>
+              <p>Metal-Oxide (MOx) Semiconductor Sensing.</p>
+            </div>
+            <div class="sensor-section">
+              <h4>How it Works</h4>
+              <p>Contains a microscopic sensing element coated with a specialized metal-oxide material heated to a high temperature. Chemical vapors react with oxygen ions on this surface, altering the sensor's electrical resistance. This raw data is processed through an algorithm to calculate dynamic spikes in indoor chemical pollution.</p>
+            </div>
+          </div>
         </div>
       </div>
 

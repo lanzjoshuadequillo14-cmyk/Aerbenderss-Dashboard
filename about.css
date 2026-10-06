@@ -265,6 +265,54 @@ body {
   line-height: 1.6;
 }
 
+.sensor-suite {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sensor-card {
+  background-color: var(--card-inner);
+  border: 1px solid #233147;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.sensor-image {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #0f172a;
+  margin-bottom: 16px;
+}
+
+.sensor-title {
+  color: #ffffff;
+  font-size: 17px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.sensor-section {
+  margin-top: 16px;
+}
+
+.sensor-section h4 {
+  color: var(--accent-green);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.sensor-section p {
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 /* Spec Bullet List */
 .spec-list {
   list-style: none;
@@ -376,6 +424,10 @@ body {
 ========================================================= */
 @media (max-width: 1024px) {
   .about-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sensor-suite {
     grid-template-columns: 1fr;
   }
 }
