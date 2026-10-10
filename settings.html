@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AeroCube Settings</title>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css" />
-    <link rel="manifest" href="manifest.json" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroCube Settings</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-
   <div class="mobile-top-bar">
     <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
     <span class="mobile-brand">AeroCube</span>
@@ -31,6 +30,7 @@
         <a href="settings.html" class="nav-item active"><i data-lucide="settings"></i><span>Settings</span></a>
       </div>
     </div>
+
     <div class="sidebar-footer">
       <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden>
         <i data-lucide="download"></i><span>Install App</span>
@@ -51,52 +51,66 @@
       </div>
     </header>
 
-    <!-- Device Selection -->
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="radio-tower"></i> Connected Devices</h2>
       </div>
+
       <form class="device-selector" id="device-selector-form">
         <div class="device-selector-field">
           <label for="aerocube-id">AeroCube ID</label>
           <input type="text" id="aerocube-id" placeholder="aerocube_01" required>
         </div>
+
         <div class="device-selector-field">
           <label for="aeroplug-id">AeroPlug ID</label>
           <input type="text" id="aeroplug-id" placeholder="plug_01" required>
         </div>
+
         <button type="submit" class="device-selector-button">Save Device IDs</button>
       </form>
     </section>
 
-    <!-- Automation Thresholds -->
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="sliders-horizontal"></i> Automation Thresholds</h2>
         <button class="btn-save" id="btn-save"><i data-lucide="save"></i> Save Configuration</button>
       </div>
+
       <div class="aeroplug-content">
-        <p style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 8px;">
-          Define the environmental conditions that automatically activate the connected AeroPlug devices. These thresholds are read by the ESP32 firmware to determine when to trigger the relays.
+        <p style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px;">
+          Define the environmental conditions that automatically activate the connected AeroPlug devices. These automation values are configurable control points.
         </p>
-        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
-          Hysteresis Notice: An activated outlet will deactivate when the air-quality reading falls more than 15% below its configured threshold.
+
+        <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;">
+          Hysteresis Notice: An activated outlet will deactivate when the reading falls more than 15% below its configured threshold.
         </p>
 
         <div class="threshold-grid">
-          <!-- CO2 Threshold -->
           <div class="threshold-card">
             <div class="t-header">
               <div class="card-icon"><i data-lucide="wind"></i></div>
               <div>
                 <div class="t-title">CO₂ Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when CO₂ exceeds this value</div>
+                <div class="t-desc">Choose which outlet responds when CO₂ reaches this value</div>
               </div>
             </div>
+
             <div class="t-value" id="val-co2">-- <span>ppm</span></div>
-            <div class="slider-labels"><span>400 (Fresh)</span><span>2000 (Critical)</span></div>
-            <input type="range" id="slider-co2" min="400" max="2000" value="1000" class="range-slider">
-            <div class="t-recommendation"><strong>Recommended mitigation:</strong> ventilation or exhaust fan</div>
+            <div class="slider-labels"><span>400 ppm</span><span>2500 ppm</span></div>
+            <input type="range" id="slider-co2" min="400" max="2500" step="10" value="1000" class="range-slider">
+
+            <div class="t-recommendation">
+              <strong>Reference levels:</strong><br>
+              &lt; 1,000 ppm — Harmless<br>
+              1,000–2,000 ppm — Elevated<br>
+              &gt; 2,000 ppm — Unacceptable
+            </div>
+
+            <div class="t-recommendation">
+              <strong>Recommended mitigation:</strong> ventilation or exhaust fan
+            </div>
+
             <label class="outlet-select-label" for="select-co2-outlet">Controlled outlet</label>
             <select class="outlet-select" id="select-co2-outlet">
               <option value="relay1">Outlet 1</option>
@@ -104,19 +118,30 @@
             </select>
           </div>
 
-          <!-- VOC Threshold -->
           <div class="threshold-card">
             <div class="t-header">
               <div class="card-icon"><i data-lucide="flask-conical"></i></div>
               <div>
-                <div class="t-title">VOC Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when VOC exceeds this value</div>
+                <div class="t-title">VOC Index Automation Threshold</div>
+                <div class="t-desc">Choose which outlet responds when VOC Index reaches this value</div>
               </div>
             </div>
-            <div class="t-value" id="val-voc">-- <span>idx</span></div>
-            <div class="slider-labels"><span>0 (Clean)</span><span>500 (Poor)</span></div>
-            <input type="range" id="slider-voc" min="0" max="500" value="150" class="range-slider">
-            <div class="t-recommendation"><strong>Recommended mitigation:</strong> fresh-air ventilation and source removal</div>
+
+            <div class="t-value" id="val-voc">-- <span>Index</span></div>
+            <div class="slider-labels"><span>1</span><span>500</span></div>
+            <input type="range" id="slider-voc" min="1" max="500" step="1" value="150" class="range-slider">
+
+            <div class="t-recommendation">
+              <strong>Reference levels:</strong><br>
+              1–99 — Improvement<br>
+              Around 100 — Normal Baseline<br>
+              101–500 — Deterioration
+            </div>
+
+            <div class="t-recommendation">
+              <strong>Recommended mitigation:</strong> source removal and ventilation
+            </div>
+
             <label class="outlet-select-label" for="select-voc-outlet">Controlled outlet</label>
             <select class="outlet-select" id="select-voc-outlet">
               <option value="relay1">Outlet 1</option>
@@ -124,21 +149,35 @@
             </select>
           </div>
 
-          <!-- PM AQI Threshold -->
           <div class="threshold-card">
             <div class="t-header">
-              <div class="card-icon"><i data-lucide="gauge"></i></div>
+              <div class="card-icon"><i data-lucide="cloud"></i></div>
               <div>
-                <div class="t-title">PM AQI Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when PM AQI exceeds this value</div>
+                <div class="t-title">PM2.5 Automation Threshold</div>
+                <div class="t-desc">Choose which outlet responds when PM2.5 reaches this value</div>
               </div>
             </div>
-            <div class="t-value" id="val-pmaqi">-- <span>AQI</span></div>
-            <div class="slider-labels"><span>0 (Good)</span><span>200 (Hazardous)</span></div>
-            <input type="range" id="slider-pmaqi" min="0" max="200" value="35" class="range-slider">
-            <div class="t-recommendation"><strong>Recommended mitigation:</strong> air purifier or particle filtration</div>
-            <label class="outlet-select-label" for="select-pmaqi-outlet">Controlled outlet</label>
-            <select class="outlet-select" id="select-pmaqi-outlet">
+
+            <div class="t-value" id="val-pm25">-- <span>µg/m³</span></div>
+            <div class="slider-labels"><span>0 µg/m³</span><span>100 µg/m³</span></div>
+            <input type="range" id="slider-pm25" min="0" max="100" step="1" value="15" class="range-slider">
+
+            <div class="t-recommendation">
+              <strong>24-hour PM2.5 reference:</strong><br>
+              ≤ 15 µg/m³ — Within WHO 24-hour AQG<br>
+              &gt; 15 µg/m³ — Above WHO 24-hour AQG
+            </div>
+
+            <div class="t-recommendation">
+              <strong>Important:</strong> WHO classification is based on the rolling 24-hour average, not a single instantaneous PM2.5 reading.
+            </div>
+
+            <div class="t-recommendation">
+              <strong>Recommended mitigation:</strong> source reduction, exhaust ventilation or particle filtration
+            </div>
+
+            <label class="outlet-select-label" for="select-pm25-outlet">Controlled outlet</label>
+            <select class="outlet-select" id="select-pm25-outlet">
               <option value="relay1">Outlet 1</option>
               <option value="relay2">Outlet 2</option>
             </select>
@@ -147,13 +186,13 @@
       </div>
     </section>
 
-    <!-- Buzzer Control -->
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="volume-2"></i> Audible Alert (Buzzer)</h2>
       </div>
+
       <div class="aeroplug-content">
-        <div class="relay-item" style="border: 1px solid var(--border); background: var(--bg-inner); border-radius: 10px;">
+        <div class="relay-item" style="border:1px solid var(--border);background:var(--bg-inner);border-radius:10px;">
           <div class="relay-info">
             <div class="card-icon"><i data-lucide="volume-2"></i></div>
             <div>
@@ -161,32 +200,40 @@
               <div class="relay-state" id="text-buzzer">--</div>
             </div>
           </div>
+
           <label class="switch">
             <input type="checkbox" id="switch-buzzer" disabled>
             <span class="slider"></span>
           </label>
         </div>
-        <p class="buzzer-note">Controls the AeroCube's local buzzer alert. When ON, the buzzer will sound during poor air quality conditions. When SILENCED, the buzzer is muted but air quality monitoring continues normally.</p>
+
+        <p class="buzzer-note">
+          Controls the AeroCube's local buzzer alert. When ON, the buzzer can sound during configured alert conditions. When SILENCED, the buzzer is muted but air quality monitoring continues normally.
+        </p>
       </div>
     </section>
 
-    <!-- SPS30 Maintenance -->
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="wrench"></i> SPS30 Sensor Maintenance</h2>
       </div>
+
       <div class="aeroplug-content">
         <div class="auto-mode-info">
           <div class="auto-mode-label">SPS30 FAN CLEANING</div>
           <p>Start the SPS30 sensor fan-cleaning cycle to help remove dust from the sensor chamber.</p>
-          <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The ESP32 performs the cleaning operation. This dashboard only sends the Firebase command.</p>
+          <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+            The ESP32 performs the cleaning operation. This dashboard only sends the Firebase command.
+          </p>
         </div>
-        <div class="outlet-controls" style="grid-template-columns: 1fr;">
-          <div class="relay-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+
+        <div class="outlet-controls" style="grid-template-columns:1fr;">
+          <div class="relay-item" style="flex-direction:column;align-items:stretch;gap:16px;">
             <div>
               <div class="relay-title">Sensor Cleaning Status</div>
               <div class="relay-state" id="text-sps30-status">Ready</div>
             </div>
+
             <button class="btn-cleaning" id="btn-sps30clean" type="button">
               <i data-lucide="play"></i> Start Sensor Cleaning
             </button>
@@ -195,27 +242,31 @@
       </div>
     </section>
 
-    <!-- SCD41 CO2 Force Recalibration -->
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="gauge"></i> SCD41 CO₂ Calibration</h2>
       </div>
+
       <div class="aeroplug-content">
         <div class="auto-mode-info">
-          <div class="auto-mode-label" style="color: var(--accent-yellow);">SCD41 CO₂ FORCE RECALIBRATION</div>
+          <div class="auto-mode-label" style="color:var(--accent-yellow);">SCD41 CO₂ FORCE RECALIBRATION</div>
           <p>Force recalibration adjusts the SCD41 CO₂ sensor against fresh outdoor air.</p>
-          <p style="margin-top: 8px; font-size: 12px; color: var(--accent-yellow);">
-            <i data-lucide="triangle-alert" style="width: 14px; height: 14px; vertical-align: -2px;"></i>
-            Ensure the device has been exposed to fresh outdoor air (400 ppm) for at least 3 minutes before calibrating.
+          <p style="margin-top:8px;font-size:12px;color:var(--accent-yellow);">
+            <i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px;"></i>
+            Ensure the device has been exposed to fresh outdoor air for at least 3 minutes before calibrating.
           </p>
-          <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The ESP32 performs the calibration. This dashboard only sends the Firebase command.</p>
+          <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+            The ESP32 performs the calibration. This dashboard only sends the Firebase command.
+          </p>
         </div>
-        <div class="outlet-controls" style="grid-template-columns: 1fr;">
-          <div class="relay-item" style="flex-direction: column; align-items: stretch; gap: 16px;">
+
+        <div class="outlet-controls" style="grid-template-columns:1fr;">
+          <div class="relay-item" style="flex-direction:column;align-items:stretch;gap:16px;">
             <div>
               <div class="relay-title">CO₂ Calibration Status</div>
               <div class="relay-state" id="text-co2frc-status">Ready</div>
             </div>
+
             <button class="btn-cleaning" id="btn-co2frc" type="button">
               <i data-lucide="refresh-cw"></i> Start CO₂ Recalibration
             </button>
@@ -224,12 +275,14 @@
       </div>
     </section>
 
-    <div class="modal-overlay" id="modal-confirm" style="display: none;">
+    <div class="modal-overlay" id="modal-confirm" style="display:none;">
       <div class="modal-card">
         <div class="modal-icon"><i data-lucide="alert-triangle"></i></div>
         <h3>Confirm Sensor Cleaning</h3>
         <p>This will trigger the SPS30 fan-cleaning cycle on the selected AeroCube.</p>
-        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The ESP32 will reset the command when cleaning is complete.</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+          The ESP32 will reset the command when cleaning is complete.
+        </p>
         <div class="modal-buttons">
           <button class="btn-cancel" id="btn-modal-cancel" type="button">Cancel</button>
           <button class="btn-confirm" id="btn-modal-confirm" type="button">Confirm &amp; Start</button>
@@ -237,12 +290,14 @@
       </div>
     </div>
 
-    <div class="modal-overlay" id="modal-co2frc-confirm" style="display: none;">
+    <div class="modal-overlay" id="modal-co2frc-confirm" style="display:none;">
       <div class="modal-card">
         <div class="modal-icon"><i data-lucide="alert-triangle"></i></div>
         <h3>Confirm CO₂ Recalibration</h3>
-        <p>Ensure the device has been exposed to fresh outdoor air (400 ppm) for at least 3 minutes before calibrating.</p>
-        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">The SCD41 will use the current outdoor-air concentration as its calibration reference.</p>
+        <p>Ensure the device has been exposed to fresh outdoor air for at least 3 minutes before calibrating.</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+          The SCD41 will use the current outdoor-air concentration as its calibration reference.
+        </p>
         <div class="modal-buttons">
           <button class="btn-cancel" id="btn-co2frc-cancel" type="button">Cancel</button>
           <button class="btn-confirm" id="btn-co2frc-confirm" type="button">Confirm &amp; Calibrate</button>

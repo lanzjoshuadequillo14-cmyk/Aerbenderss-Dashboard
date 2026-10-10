@@ -1,29 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AeroCube | Dashboard</title>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta property="og:image" content="https://bolt.new/static/og_default.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
 </head>
 <body>
-
-  <!-- Mobile Top Header Bar with Hamburger Button -->
   <div class="mobile-top-bar">
-    <button class="menu-toggle-btn" id="menuToggle"><i data-lucide="menu"></i></button>
+    <button class="menu-toggle-btn" id="menuToggle" type="button">
+      <i data-lucide="menu"></i>
+    </button>
     <span class="mobile-brand">AeroCube</span>
   </div>
-
-  <!-- Backdrop Overlay -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <!-- Left Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
@@ -31,39 +28,43 @@
       </div>
       <div class="nav-links">
         <a href="index.html" class="nav-item active">
-          <i data-lucide="layout-grid"></i><span>Dashboard</span>
+          <i data-lucide="layout-grid"></i>
+          <span>Dashboard</span>
         </a>
         <a href="graph.html" class="nav-item">
-          <i data-lucide="line-chart"></i><span>Analytics</span>
+          <i data-lucide="line-chart"></i>
+          <span>Analytics</span>
         </a>
         <a href="History.html" class="nav-item">
-          <i data-lucide="clock"></i><span>History</span>
+          <i data-lucide="clock"></i>
+          <span>History</span>
         </a>
         <a href="aeroplug.html" class="nav-item">
-          <i data-lucide="plug"></i><span>AeroPlug</span>
+          <i data-lucide="plug"></i>
+          <span>AeroPlug</span>
         </a>
         <a href="settings.html" class="nav-item">
-          <i data-lucide="settings"></i><span>Settings</span>
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
         </a>
       </div>
     </div>
     <div class="sidebar-footer">
       <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden>
-        <i data-lucide="download"></i><span>Install App</span>
+        <i data-lucide="download"></i>
+        <span>Install App</span>
       </button>
       <a href="about.html" class="nav-item">
-        <i data-lucide="help-circle"></i><span>About</span>
+        <i data-lucide="help-circle"></i>
+        <span>About</span>
       </a>
       <a href="#" id="btn-logout" class="nav-item logout-link">
-        <i data-lucide="log-out"></i><span>Logout</span>
+        <i data-lucide="log-out"></i>
+        <span>Logout</span>
       </a>
     </div>
   </aside>
-
-  <!-- Main Content -->
   <main class="main-content">
-
-    <!-- Header -->
     <header class="header">
       <div class="header-title">
         <h1>AeroCube Dashboard</h1>
@@ -71,18 +72,18 @@
       </div>
       <div class="header-badges">
         <div class="badge badge-live">
-          <div class="badge-dot"></div>LIVE SYNC
+          <div class="badge-dot"></div>
+          LIVE SYNC
         </div>
         <div class="badge badge-device" id="device-connection-badge">
           <span id="device-status-text">CONNECTING...</span>
         </div>
         <button class="notification-button" id="btn-notifications" type="button">
-          <i data-lucide="bell"></i><span>Enable Notifications</span>
+          <i data-lucide="bell"></i>
+          <span>Enable Notifications</span>
         </button>
       </div>
     </header>
-
-    <!-- Device Status Bar -->
     <section class="device-status-bar" id="device-status-bar">
       <div class="device-status-left">
         <div class="device-indicator" id="device-indicator"></div>
@@ -105,8 +106,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Overall Air Quality Status Banner -->
     <section class="aq-status-banner" id="aq-banner">
       <div class="aq-banner-left">
         <div class="aq-banner-label">AIR QUALITY</div>
@@ -117,13 +116,12 @@
         <i data-lucide="activity"></i>
       </div>
     </section>
-
-    <!-- Sensor Cards Grid -->
     <section class="metrics-grid">
-      <!-- CO2 -->
       <div class="card" id="card-co2">
         <div class="card-header">
-          <div class="card-icon"><i data-lucide="wind"></i></div>
+          <div class="card-icon">
+            <i data-lucide="wind"></i>
+          </div>
           CO<sub>2</sub>
         </div>
         <div class="card-body">
@@ -131,23 +129,23 @@
           <div class="card-status" id="status-co2">Awaiting data</div>
         </div>
       </div>
-
-      <!-- PM AQI -->
-      <div class="card" id="card-pmaqi">
+      <div class="card" id="card-pm25-24h">
         <div class="card-header">
-          <div class="card-icon"><i data-lucide="gauge"></i></div>
-          PM AQI
+          <div class="card-icon">
+            <i data-lucide="circle-dot"></i>
+          </div>
+          24-HOUR AVG PM2.5
         </div>
         <div class="card-body">
-          <div class="card-value" id="val-pmaqi">-- <span>AQI</span></div>
-          <div class="card-status" id="status-pmaqi">Awaiting data</div>
+          <div class="card-value" id="val-pm25-24h">-- <span>µg/m³</span></div>
+          <div class="card-status" id="status-pm25-24h">Waiting for 24-hour history</div>
         </div>
       </div>
-
-      <!-- VOC Index -->
       <div class="card" id="card-voc">
         <div class="card-header">
-          <div class="card-icon"><i data-lucide="flask-conical"></i></div>
+          <div class="card-icon">
+            <i data-lucide="flask-conical"></i>
+          </div>
           VOC INDEX
         </div>
         <div class="card-body">
@@ -155,11 +153,11 @@
           <div class="card-status" id="status-voc">Awaiting data</div>
         </div>
       </div>
-
-      <!-- Temperature and Humidity -->
       <div class="card pm-detail-card" id="card-environment-detail">
         <div class="card-header">
-          <div class="card-icon"><i data-lucide="thermometer"></i></div>
+          <div class="card-icon">
+            <i data-lucide="thermometer"></i>
+          </div>
           ENVIRONMENT
         </div>
         <div class="pm-mini-grid">
@@ -173,11 +171,11 @@
           </div>
         </div>
       </div>
-
-      <!-- Additional PM readings -->
       <div class="card pm-detail-card" id="card-pm-detail">
         <div class="card-header">
-          <div class="card-icon"><i data-lucide="grid"></i></div>
+          <div class="card-icon">
+            <i data-lucide="grid"></i>
+          </div>
           PARTICULATE MATTER
         </div>
         <div class="pm-mini-grid">
@@ -200,53 +198,74 @@
         </div>
       </div>
     </section>
-
-    <!-- Recommendations Section -->
-    <section class="recommendations-section">
-      <div class="section-header">
-        <h2><i data-lucide="lightbulb"></i> Air Quality Recommendations</h2>
+    <section class="insights-grid">
+      <div class="insight-card">
+        <h3>Dynamic Insights</h3>
+        <div class="insight-body">
+          <div class="card-icon">
+            <i data-lucide="wind"></i>
+          </div>
+          <div class="insight-desc">
+            <strong class="insight-label">AIR QUALITY ANALYSIS</strong>
+            <div id="insight-text">
+              <div>Waiting for telemetry data...</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="recommendations-content" id="recommendations-content">
-        <p class="rec-waiting">Waiting for telemetry data to generate recommendations...</p>
+      <div class="insight-card">
+        <h3>Actionable Recommendations</h3>
+        <div class="insight-body">
+          <div class="card-icon">
+            <i data-lucide="check-circle-2"></i>
+          </div>
+          <div class="insight-desc">
+            <strong class="insight-label">SYSTEM STATUS</strong>
+            <div class="recommendations-content" id="recommendations-content">
+              <p class="rec-waiting">Waiting for telemetry data to generate recommendations...</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
-
-        <!-- Indoor Air Quality Guide -->
     <section class="guide-section">
       <div class="guide-header">
-        <h2><i data-lucide="book-open-check"></i> Indoor Air Quality Guide</h2>
-        <p class="guide-subtitle">Simple ways to keep your indoor air healthy</p>
+        <h2>
+          <i data-lucide="book-open-check"></i>
+          Indoor Air Quality Guide
+        </h2>
+        <p class="guide-subtitle">Simple ways to understand and improve indoor air conditions</p>
       </div>
-
       <div class="guide-body">
-        <!-- Tips -->
         <div class="guide-tips">
           <div class="guide-tip">
-            <div class="guide-tip-icon"><i data-lucide="wind"></i></div>
+            <div class="guide-tip-icon">
+              <i data-lucide="wind"></i>
+            </div>
             <div>
               <strong>Ventilate regularly</strong>
               <p>Open windows or use mechanical ventilation when CO<sub>2</sub> rises.</p>
             </div>
           </div>
-
           <div class="guide-tip">
-            <div class="guide-tip-icon"><i data-lucide="spray-can"></i></div>
+            <div class="guide-tip-icon">
+              <i data-lucide="spray-can"></i>
+            </div>
             <div>
               <strong>Reduce VOC sources</strong>
               <p>Limit smoke, strong fragrances, aerosols, and harsh cleaning products.</p>
             </div>
           </div>
-
           <div class="guide-tip">
-            <div class="guide-tip-icon"><i data-lucide="air-vent"></i></div>
+            <div class="guide-tip-icon">
+              <i data-lucide="air-vent"></i>
+            </div>
             <div>
               <strong>Control particles</strong>
-              <p>Reduce dust and smoke, and use air filtration when PM AQI is elevated.</p>
+              <p>Reduce dust, smoke, cooking emissions, and other sources when PM2.5 is elevated.</p>
             </div>
           </div>
         </div>
-
-        <!-- Reference table -->
         <div class="guide-reference">
           <h3>Reading the measurements</h3>
           <div class="guide-table-wrap">
@@ -267,16 +286,16 @@
                   <td class="g-poor">1500+ ppm</td>
                 </tr>
                 <tr>
-                  <td>VOC</td>
+                  <td>VOC Index</td>
                   <td class="g-good">&lt; 150</td>
                   <td class="g-elevated">150–249</td>
                   <td class="g-poor">250+</td>
                 </tr>
                 <tr>
-                  <td>PM AQI</td>
-                  <td class="g-good">0–100</td>
-                  <td class="g-elevated">101–150</td>
-                  <td class="g-poor">151+</td>
+                  <td>24-hour PM2.5 average</td>
+                  <td class="g-good">≤ 15 µg/m³</td>
+                  <td class="g-elevated">&gt; 15–25 µg/m³</td>
+                  <td class="g-poor">&gt; 25 µg/m³</td>
                 </tr>
               </tbody>
             </table>
@@ -284,11 +303,10 @@
         </div>
       </div>
     </section>
-    
-
   </main>
-
-  <script>lucide.createIcons();</script>
+  <script>
+    lucide.createIcons();
+  </script>
   <script src="pwa.js"></script>
   <script type="module" src="script.js"></script>
 </body>

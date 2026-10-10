@@ -1,39 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aerocube Portal - Login</title>
-  <link rel="stylesheet" href="Login.css" /> 
-  <style>
-    .password-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .password-wrapper input {
-      width: 100%;
-      padding-right: 40px; /* Leave space for the eye icon */
-    }
-    .toggle-password-btn {
-      position: absolute;
-      right: 10px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #9ca3af;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-    .toggle-password-btn:hover {
-      color: #3b82f6;
-    }
-  </style>
+  <link rel="stylesheet" href="Login.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-
   <div class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
@@ -41,53 +15,66 @@
         <p>WELCOME TO AEROCUBE</p>
       </div>
 
-      <!-- Login Form -->
       <form id="form-login" class="auth-form">
         <div class="form-group">
           <label for="login-email">Email Address</label>
-          <input type="email" id="login-email" placeholder="admin@aerocube.io" required />
+          <input type="email" id="login-email" placeholder="admin@aerocube.io" required>
         </div>
 
         <div class="form-group">
           <label for="login-password">Password</label>
+
           <div class="password-wrapper">
-            <input type="password" id="login-password" placeholder="Enter password" required />
-            <button type="button" class="toggle-password-btn" id="toggle-login-password" aria-label="Toggle password visibility">
-              <!-- Eye Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <input type="password" id="login-password" placeholder="Enter password" required>
+
+            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password">
+              <i data-lucide="eye"></i>
             </button>
-          </div>
-          <div style="text-align: right; margin-top: 6px;">
-            <a href="ChangePassword.html" id="link-forgot-password" style="font-size: 0.85em; color: #3b82f6; text-decoration: none;">Forgot Password?</a>
           </div>
         </div>
 
-        <!-- Error messages will appear here -->
-        <div id="login-error" style="color: #ef4444; margin-bottom: 15px; font-size: 0.9em; text-align: center;"></div>
+        <div class="forgot-password">
+          <a href="ChangePassword.html">Forgot Password?</a>
+        </div>
 
-        <button type="submit" id="btn-login-submit" class="btn-primary full-width">Sign In</button>
+        <div id="login-error"></div>
+
+        <button type="submit" id="btn-login-submit" class="btn-primary full-width">
+          Sign In
+        </button>
       </form>
 
-      <div class="auth-footer" style="margin-top: 20px; text-align: center;">
+     <div class="auth-footer">
         <p>Don't have an account? <a href="Registration.html">Register Here</a></p>
-      </div>
+    </div>
+    
     </div>
   </div>
 
-  <script type="module" src="Login.js"></script>
   <script>
-    // Eye Toggle Script for Login
-    const toggleBtn = document.getElementById('toggle-login-password');
+    lucide.createIcons();
+
     const passwordInput = document.getElementById('login-password');
+    const togglePassword = document.getElementById('toggle-password');
 
-    const eyeOpen = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
-    const eyeOff = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+    togglePassword.addEventListener('click', () => {
+      const isHidden = passwordInput.type === 'password';
 
-    toggleBtn?.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
-      toggleBtn.innerHTML = isPassword ? eyeOff : eyeOpen;
+      passwordInput.type = isHidden ? 'text' : 'password';
+
+      togglePassword.innerHTML = isHidden
+        ? '<i data-lucide="eye-off"></i>'
+        : '<i data-lucide="eye"></i>';
+
+      togglePassword.setAttribute(
+        'aria-label',
+        isHidden ? 'Hide password' : 'Show password'
+      );
+
+      lucide.createIcons();
     });
   </script>
+
+  <script type="module" src="Login.js"></script>
 </body>
 </html>
