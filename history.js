@@ -118,34 +118,6 @@ function filterByTimeRange(data, range) {
 }
 
 // ============================================================
-// GET OVERALL STATUS BADGE CLASS
-// ============================================================
-
-function getStatusBadgeClass(status) {
-  const s = (status || 'NORMAL').toUpperCase();
-
-  if (
-    s === 'POOR' ||
-    s === 'CRITICAL' ||
-    s === 'BAD' ||
-    s === 'UNHEALTHY' ||
-    s === 'UNACCEPTABLE'
-  ) {
-    return 'poor';
-  }
-
-  if (
-    s === 'ELEVATED' ||
-    s === 'WARNING' ||
-    s === 'MODERATE'
-  ) {
-    return 'elevated';
-  }
-
-  return 'good';
-}
-
-// ============================================================
 // FORMAT VALUES
 // ============================================================
 
@@ -267,7 +239,6 @@ function renderTable() {
           <th>VOC INDEX</th>
           <th>TEMP</th>
           <th>HUMIDITY</th>
-          <th>AIR QUALITY</th>
         </tr>
       </thead>
       <tbody>
@@ -309,12 +280,6 @@ function renderTable() {
         ? formatNumber(item.humidity, 1) + '%'
         : '--';
 
-    const status =
-      item.airQualityStatus || 'NORMAL';
-
-    const badgeClass =
-      getStatusBadgeClass(status);
-
     tableHTML += `
       <tr>
         <td style="font-family:monospace;color:#cbd5e1;">${formattedTime}</td>
@@ -324,11 +289,6 @@ function renderTable() {
         <td>${voc}</td>
         <td>${temp}</td>
         <td>${humidity}</td>
-        <td>
-          <span class="status-badge ${badgeClass}">
-            ${status.toUpperCase()}
-          </span>
-        </td>
       </tr>
     `;
   });
