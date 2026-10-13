@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npx serve .",
-    "start": "npx serve ."
+    "start": "npx serve .",
+    "test": "node --test"
   }
 }

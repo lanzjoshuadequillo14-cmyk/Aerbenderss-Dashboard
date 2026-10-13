@@ -1,8 +1,9 @@
-const CACHE_NAME = 'aerocube-shell-v1';
+const CACHE_NAME = 'aerocube-shell-v2';
 const APP_SHELL = [
   'index.html',
   'style.css',
   'script.js',
+  'sensor-status.js',
   'firebase.js',
   'manifest.json',
   'logo/aerocube logo.png'
@@ -17,7 +18,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys
+        .filter(key => key.startsWith('aerocube-shell-') && key !== CACHE_NAME)
+        .map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {

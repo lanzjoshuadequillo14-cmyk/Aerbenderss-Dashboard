@@ -3,6 +3,7 @@
 // ============================================================
 
 import { db, auth, BASE_PATH } from './firebase.js';
+import { getFirmwareStatus, statusBadge } from './sensor-status.js';
 import { ref, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -122,6 +123,7 @@ function filterByTimeRange(data, range) {
 // ============================================================
 
 function formatNumber(value, decimals = 1) {
+  if (value === undefined || value === null || value === '') return '--';
   const number = Number(value);
 
   if (!Number.isFinite(number)) return '--';
@@ -280,13 +282,18 @@ function renderTable() {
         ? formatNumber(item.humidity, 1) + '%'
         : '--';
 
+    const co2Status = getFirmwareStatus(item, 'co2', 'Not recorded');
+    const vocStatus = getFirmwareStatus(item, 'voc', 'Not recorded');
+    const pm25Status = getFirmwareStatus(item, 'pm25', 'Not recorded');
+    const pm25StatusBadge = pm25Status.raw ? statusBadge(pm25Status) : '';
+
     tableHTML += `
       <tr>
         <td style="font-family:monospace;color:#cbd5e1;">${formattedTime}</td>
-        <td>${co2}</td>
-        <td>${pm25}</td>
+        <td>${co2}<br>${statusBadge(co2Status)}</td>
+        <td>${pm25}${pm25StatusBadge ? '<br>' + pm25StatusBadge : ''}</td>
         <td>${pm10}</td>
-        <td>${voc}</td>
+        <td>${voc}<br>${statusBadge(vocStatus)}</td>
         <td>${temp}</td>
         <td>${humidity}</td>
       </tr>

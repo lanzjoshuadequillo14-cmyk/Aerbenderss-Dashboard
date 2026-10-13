@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroCube | Guide</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" id="menuToggle" type="button" aria-label="Toggle navigation"><i data-lucide="menu"></i></button>
+    <span class="mobile-brand">AeroCube</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top-group">
+      <div class="sidebar-logo"><img src="logo/aerocube logo.png" alt="AeroCube Logo"></div>
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+        <a href="graph.html" class="nav-item"><i data-lucide="line-chart"></i><span>Analytics</span></a>
+        <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="guide.html" class="nav-item active"><i data-lucide="book-open-check"></i><span>Guide</span></a>
+        <a href="aeroplug.html" class="nav-item"><i data-lucide="plug"></i><span>AeroPlug</span></a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="nav-item install-app-item" id="install-app-btn" type="button" hidden><i data-lucide="download"></i><span>Install App</span></button>
+      <a href="about.html" class="nav-item"><i data-lucide="help-circle"></i><span>About</span></a>
+      <a href="#" id="btn-logout" class="nav-item logout-link"><i data-lucide="log-out"></i><span>Logout</span></a>
+    </div>
+  </aside>
+
+  <main class="main-content guide-page">
+    <header class="header">
+      <div class="header-title">
+        <h1>AeroCube Guide</h1>
+        <p class="header-subtitle">Learn how to use AeroCube and understand your indoor air readings.</p>
+      </div>
+    </header>
+
+    <section class="guide-section" id="getting-started">
+      <div class="guide-header">
+        <h2><i data-lucide="book-open-check"></i> Getting Started</h2>
+        <p class="guide-subtitle">Place your device well, understand what it measures, and use the readings to make practical changes.</p>
+      </div>
+      <div class="guide-tips">
+        <div class="guide-tip">
+          <div class="guide-tip-icon"><i data-lucide="map-pin"></i></div>
+          <div><strong>AeroCube placement</strong><p>Place AeroCube in the breathing zone, 1&ndash;2 meters above the ground, with normal air circulation and unobstructed sensor openings.</p></div>
+        </div>
+        <div class="guide-tip">
+          <div class="guide-tip-icon"><i data-lucide="scan-search"></i></div>
+          <div><strong>What the sensors measure</strong><p>CO₂ reflects ventilation, VOC Index reflects changing chemical pollution, and the SPS30 measures airborne particles.</p></div>
+        </div>
+        <div class="guide-tip">
+          <div class="guide-tip-icon"><i data-lucide="bot"></i></div>
+          <div><strong>Understanding automation</strong><p>Use AeroPlug and configured thresholds to respond automatically, or switch to manual mode when you need direct control.</p></div>
+        </div>
+      </div>
+      <div class="guide-placement">
+        <h3>Where should AeroCube be placed?</h3>
+        <p>Place AeroCube in the breathing zone, <strong>1&ndash;2 meters above the ground</strong>, in an occupied area with normal air circulation. Keep it away from direct windows, doors, fans, air-conditioning vents, cooking sources, and other locations that could cause unusually localized readings. Keep the sensor openings unobstructed.</p>
+      </div>
+    </section>
+
+    <section class="guide-section" id="tips">
+      <div class="guide-header">
+        <h2><i data-lucide="lightbulb"></i> Quick Indoor Air Tips</h2>
+        <p class="guide-subtitle">Simple actions that can improve indoor air conditions.</p>
+      </div>
+      <div class="guide-tips">
+        <div class="guide-tip"><div class="guide-tip-icon"><i data-lucide="wind"></i></div><div><strong>Ventilate regularly</strong><p>Open windows or use mechanical ventilation when CO₂ rises.</p></div></div>
+        <div class="guide-tip"><div class="guide-tip-icon"><i data-lucide="spray-can"></i></div><div><strong>Reduce VOC sources</strong><p>Limit smoke, strong fragrances, aerosols, and harsh cleaning products.</p></div></div>
+        <div class="guide-tip"><div class="guide-tip-icon"><i data-lucide="air-vent"></i></div><div><strong>Control particles</strong><p>Reduce dust, smoke, cooking emissions, and other sources when PM2.5 is elevated.</p></div></div>
+      </div>
+    </section>
+
+    <section class="guide-section guide-article" id="readings" aria-labelledby="guide-readings-title">
+      <div class="guide-header">
+        <h2 id="guide-readings-title"><i data-lucide="book-open"></i> Indoor Air Quality Guide</h2>
+        <p class="guide-subtitle">A quick guide to indoor air and dashboard readings.</p>
+      </div>
+      <p>AeroCube helps us keep track of the air indoors. This guide explains where common pollutants come from, what the dashboard readings mean, and simple ways to reduce exposure.</p>
+      <nav class="guide-topics" aria-label="Indoor air guide topics">
+        <a href="#co2">CO&#8322; &amp; fresh air</a>
+        <a href="#voc">VOCs &amp; everyday gases</a>
+        <a href="#pm25">PM &amp; airborne particles</a>
+        <a href="#sources">Research sources</a>
+      </nav>
+    </section>
+
+    <section class="guide-section guide-article" id="co2" aria-labelledby="guide-co2-title">
+      <div class="guide-header">
+      <h2 id="guide-co2-title">
+      <i data-lucide="wind">
+      </i> CO₂: Fresh air</h2>
+      </div>
+      <figure class="guide-figure">
+        <img alt="Breathing adds CO₂ to a room. Ventilation helps carry it outside." src="images/co2img.png" width="2100" height="780" loading="lazy" decoding="async">
+        <figcaption>Breathing adds CO₂ to a room. Ventilation helps carry it outside.</figcaption>
+      </figure>
+      <h3>What is CO₂?</h3>
+      <p>Carbon dioxide, or CO₂, is a colorless, odorless gas. Our bodies produce it while using energy, and we breathe it out. People are often its main indoor source. Fuel-burning appliances can also add CO₂.</p>
+      <h3>Why it builds up</h3>
+      <p>Imagine a classroom full of students with the windows closed. Everyone keeps breathing out CO₂, so it can build up when fresh air is limited. A sensor helps us notice when ventilation may not be keeping up.</p>
+      <span class="guide-anchor" id="environment">
+      </span>
+      <h3 id="sensor-0-readings">SCD41 readings</h3>
+      <p>CO₂ is measured in parts per million, or ppm. The SCD41 also gives temperature and humidity readings. Here is how to read the project’s reference table.</p>
+      <div class="guide-table-wrap" role="region" aria-labelledby="sensor-0-readings">
+      <table class="guide-table" role="table" aria-labelledby="sensor-0-readings">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Reading</th>
+            <th scope="col" role="columnheader">Status</th>
+            <th scope="col" role="columnheader">What it means</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">CO₂</span>
+              <span class="guide-reading-range">&lt; 1,000 ppm</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-harmless">Harmless</span>
+            </td>
+            <td role="cell" data-label="What it means">Within this CO₂ reference range. Keep normal ventilation.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">CO₂</span>
+              <span class="guide-reading-range">1,000–2,000 ppm, inclusive</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-co2-elevated">Elevated</span>
+            </td>
+            <td role="cell" data-label="What it means">CO₂ is building up. Check and improve ventilation.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">CO₂</span>
+              <span class="guide-reading-range">&gt; 2,000 ppm</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-unacceptable">Unacceptable</span>
+            </td>
+            <td role="cell" data-label="What it means">Ventilation needs prompt attention.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">Temperature (°C)</span>
+              <span class="guide-reading-range">—</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status guide-status-neutral">Environmental reading</span>
+            </td>
+            <td role="cell" data-label="What it means">Shows the measured temperature in degrees Celsius.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">Humidity (%)</span>
+              <span class="guide-reading-range">—</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status guide-status-neutral">Environmental reading</span>
+            </td>
+            <td role="cell" data-label="What it means">Shows relative humidity: how moist the air is.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p>“Harmless” is a label for this CO₂ range, not a guarantee that the room has no other pollutants. Temperature and humidity provide environmental context; this guide does not assign them status limits.</p>
+      <h3>Bring in fresh air</h3>
+      <p>When CO₂ rises, open windows or doors if outdoor air is clean, or use an exhaust fan that vents outdoors. Fresh replacement air needs a way to enter. Keep normal ventilation when readings are low.</p>
+      <h3>Health effects</h3>
+      <p>Studies have linked elevated indoor CO₂ with tiredness, headaches, and trouble concentrating, but CO₂ alone may not explain these effects. Very high concentrations can cause breathing difficulty, unconsciousness, or death.</p>
+      <h3>Quick fact</h3>
+      <p>A cool room can still need fresh air. Many home air conditioners recirculate indoor air. A circulating fan or ordinary HEPA purifier does not remove CO₂.</p>
+      <h3>CO₂ vs. CO</h3>
+      <p>Carbon monoxide, or CO, is a different gas. A CO₂ sensor does not replace a CO alarm. Never burn charcoal inside a home.</p>
+    </section>
+
+    <section class="guide-section guide-article" id="voc" aria-labelledby="guide-voc-title">
+      <div class="guide-header">
+        <h2 id="guide-voc-title"><i data-lucide="flask-conical"></i> VOCs: Everyday gases</h2>
+      </div>
+      <figure class="guide-figure">
+        <img alt="Paint, cleaners, some furniture, and citrus peel can release VOCs." src="images/vocimg.png" width="2100" height="780" loading="lazy" decoding="async">
+        <figcaption>Paint, cleaners, some furniture, and citrus peel can release VOCs.</figcaption>
+      </figure>
+      <h3>What are VOCs?</h3>
+      <p>Volatile organic compounds, or VOCs, are carbon-containing chemicals that enter the air as gases. Many create familiar smells, but some are odorless. Their health effects depend on the chemical, amount, and length of exposure.</p>
+      <h3>Common sources</h3>
+      <p>Paints, cleaners, sprays, air fresheners, glues, markers, and cosmetics can release VOCs. Some furniture also releases gases from its materials. This is called off-gassing, and it can continue even while an item sits unused.</p>
+      <h3>Useful and harmful VOCs</h3>
+      <p>Not all VOCs have the same risks. Limonene gives citrus peel its scent, while ethanol helps alcohol-based hand sanitizers reduce germs. These are useful VOCs, but their vapors are not harmless at every exposure.</p>
+      <p>Benzene from gasoline or tobacco smoke and formaldehyde from some pressed-wood products are examples of hazardous VOCs. Both can increase cancer risk. How much we inhale and how long we are exposed matter.</p>
+      <h3>Why they build up</h3>
+      <p>Cleaning, painting, or using scented products can release vapors faster than ventilation removes them. A sensor can help spot changes during these activities, giving us a reason to check for a possible source.</p>
+      <h3 id="sensor-1-readings">SGP40 readings</h3>
+      <p>The VOC Index compares current VOC activity with the sensor’s adaptive baseline, based on roughly the previous 24 hours. It describes a change relative to recent conditions.</p>
+      <div class="guide-table-wrap" role="region" aria-labelledby="sensor-1-readings">
+      <table class="guide-table" role="table" aria-labelledby="sensor-1-readings">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Reading</th>
+            <th scope="col" role="columnheader">Status</th>
+            <th scope="col" role="columnheader">What it means</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">VOC Index</span>
+              <span class="guide-reading-range">1–99</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-improvement">Improvement</span>
+            </td>
+            <td role="cell" data-label="What it means">Lower VOC activity than the recent baseline.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">VOC Index</span>
+              <span class="guide-reading-range">100</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-baseline">Baseline</span>
+            </td>
+            <td role="cell" data-label="What it means">Typical VOC activity for the sensor’s recent history.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">VOC Index</span>
+              <span class="guide-reading-range">101–500</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-deterioration">Deterioration</span>
+            </td>
+            <td role="cell" data-label="What it means">Higher VOC activity than the recent baseline. Check possible sources.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p>The index has no concentration unit. It does not identify individual chemicals or measure their toxicity. A reading of 100 means baseline, not proof that the air is healthy.</p>
+      <h3>Reduce the source</h3>
+      <p>If the index rises, check recent activities. Reduce unnecessary sprays or fragrances, close product containers, and ventilate with clean outdoor air or suitable exhaust ventilation. Keep monitoring even when the index shows Improvement or Baseline.</p>
+      <p>HEPA filters capture particles. VOC gases need a suitable gas-removal filter, such as one with substantial activated carbon. How well it works depends on the chemical, filter material, and maintenance.</p>
+      <h3>Health effects</h3>
+      <p>Some VOCs can irritate the eyes, nose, or throat and cause headaches, dizziness, or nausea. Certain chemicals can damage organs or increase cancer risk. A general VOC Index cannot predict a specific health effect.</p>
+      <h3>Quick fact</h3>
+      <p>A pleasant scent does not guarantee cleaner air. Researchers have observed cleaning vapors reacting with indoor ozone to form new tiny particles.</p>
+    </section>
+
+    <section class="guide-section guide-article" id="pm25" aria-labelledby="guide-pm25-title">
+      <div class="guide-header">
+        <h2 id="guide-pm25-title"><i data-lucide="circle-dot"></i> PM: Airborne particles</h2>
+      </div>
+      <figure class="guide-figure">
+        <img alt="Representative particle diameters compared with a human hair on the same scale." src="images/pmimg.png" width="2100" height="780" loading="lazy" decoding="async">
+        <figcaption>Representative particle diameters compared with a human hair on the same scale.</figcaption>
+      </figure>
+      <h3>What is PM?</h3>
+      <p>Particulate matter, or PM, includes solid particles and liquid droplets floating in air, such as dust, soot, and smoke particles. Many are too small to see. Readings in µg/m³ mean micrograms of particles per cubic meter of air.</p>
+      <h3>Particle sizes</h3>
+      <p>PM1.0 includes particles about 1 micrometer or smaller; PM2.5, 2.5 or smaller; PM4.0, 4 or smaller; and PM10.0, 10 or smaller. These groups overlap: particles in PM1.0 are also included in the larger size groups.</p>
+      <p>Soot and cooking aerosols can include particles smaller than 1 micrometer. Fine smoke contributes to PM2.5. Larger dust fragments can fall within PM4.0 or PM10.0. These names describe size, not what a particle is made of.</p>
+      <h3>Common sources</h3>
+      <p>Cooking, smoking, candles, charcoal or uling, and stirred-up dust can raise indoor PM. Traffic pollution and outdoor smoke can also enter through windows and gaps. A sensor helps us spot these changes, including particles we cannot see.</p>
+      <h3>How long they stay</h3>
+      <p>Some particles can stay suspended in the atmosphere for days to weeks. Indoors, their time in the air depends on size, ventilation, filtration, and settling. Clear-looking air can still contain particles after visible smoke disappears.</p>
+      <h3>Health effects</h3>
+      <p>Fine particles can reach deep into the lungs, and some may enter the bloodstream. Exposure can worsen asthma and contribute to heart and lung problems. Children, older adults, and people with existing heart or lung disease are more vulnerable.</p>
+      <h3 id="sensor-2-readings">SPS30 readings</h3>
+      <p>Live readings show particle levels now. The 24-hour PM2.5 average gives a longer view and is the reading to compare with the World Health Organization’s air quality guideline, or AQG.</p>
+      <div class="guide-table-wrap" role="region" aria-labelledby="sensor-2-readings">
+      <table class="guide-table" role="table" aria-labelledby="sensor-2-readings">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">Reading</th>
+            <th scope="col" role="columnheader">Status</th>
+            <th scope="col" role="columnheader">What it means</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">PM1.0, PM2.5, PM4.0, PM10.0</span>
+              <span class="guide-reading-range">Live concentration</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status guide-status-neutral">See dashboard</span>
+            </td>
+            <td role="cell" data-label="What it means">Shows current particle levels. Watch for spikes from smoke, cooking, or dust.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">24-hour PM2.5 average</span>
+              <span class="guide-reading-range">≤ 15 µg/m³</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-within-who">Within WHO 24-hour AQG</span>
+            </td>
+            <td role="cell" data-label="What it means">The daily average meets this WHO reference. Keep reducing avoidable sources.</td>
+          </tr>
+          <tr role="row">
+            <td role="cell" data-label="Reading">
+              <span class="guide-reading-name">24-hour PM2.5 average</span>
+              <span class="guide-reading-range">&gt; 15 µg/m³</span>
+            </td>
+            <td role="cell" data-label="Status">
+              <span class="guide-status g-above-who">Above WHO 24-hour AQG</span>
+            </td>
+            <td role="cell" data-label="What it means">The daily average is above this reference. Reduce sources and use suitable filtration.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p>The 15 µg/m³ guideline applies to a 24-hour average, not a single live reading. We can still respond to sudden spikes right away. Lower particle exposure is better, even when the daily average is within the guideline.</p>
+      <h3>Cut smoke and dust</h3>
+      <p>Check cooking smoke, dust, or burning sources when levels rise. Reduce avoidable emissions and use a kitchen exhaust that vents outdoors. A properly sized HEPA purifier helps remove particles. Damp wiping and mopping help keep dust from being stirred up.</p>
+      <p>Keep these habits and maintain filters when readings are lower. If outdoor smoke or traffic pollution is high, limit its entry and use filtration. Ventilate with cleaner outdoor air when conditions improve.</p>
+      <h3>Quick fact</h3>
+      <p>A typical human hair is about 70 micrometers wide. A 2.5-micrometer particle is roughly 30 times smaller in diameter.</p>
+    </section>
+
+    <section class="guide-section guide-article" id="using-guide" aria-labelledby="guide-using-guide-title">
+      <div class="guide-header">
+        <h2 id="guide-using-guide-title"><i data-lucide="lightbulb"></i> Using the guide</h2>
+      </div>
+      <p>Start by checking what changed in the room, then take action and watch the trend. Fresh air helps reduce CO₂, source control and suitable gas filters help with VOCs, and HEPA filtration helps with PM.</p>
+    </section>
+
+    <details class="guide-section guide-sources" id="sources">
+    <summary>Research sources</summary>
+    <p>Reference ranges and status labels follow the project’s sensor guide. Scientific sources checked on 12 and 13 October 2026. The illustrations are original explanatory graphics.</p>
+    <p>[1] <a href="https://www.epa.gov/indoor-air-quality-iaq/protect-indoor-air-quality-your-home">US EPA  Protect Indoor Air Quality in Your Home</a>
+    </p>
+    <p>[2] <a href="https://www.ashrae.org/file%20library/about/position%20documents/pd-on-indoor-carbon-dioxide-english.pdf">ASHRAE  Position Document on Indoor Carbon Dioxide  2025</a>
+    </p>
+    <p>[3] <a href="https://www.hse.gov.uk/ventilation/using-co2-monitors.htm">UK HSE  Using CO2 Monitors</a>
+    </p>
+    <p>[4] <a href="https://www.cdc.gov/niosh/npg/npgd0103.html">CDC NIOSH  Pocket Guide to Chemical Hazards  Carbon Dioxide</a>
+    </p>
+    <p>[5] <a href="https://www.hse.gov.uk/carboncapture/assets/docs/major-hazard-potential-carbon-dioxide.pdf">UK HSE  Assessment of the Major Hazard Potential of Carbon Dioxide</a>
+    </p>
+    <p>[6] <a href="https://www.epa.gov/indoor-air-quality-iaq/improving-indoor-air-quality">US EPA  Improving Indoor Air Quality</a>
+    </p>
+    <p>[7] <a href="https://www.cdc.gov/carbon-monoxide/about/">CDC  Carbon Monoxide Poisoning Basics</a>
+    </p>
+    <p>[8] <a href="https://www.epa.gov/indoor-air-quality-iaq/volatile-organic-compounds-impact-indoor-air-quality">US EPA  Volatile Organic Compounds Impact on Indoor Air Quality</a>
+    </p>
+    <p>[9] <a href="https://pubchem.ncbi.nlm.nih.gov/compound/D-Limonene">NIH PubChem  D Limonene</a>
+    </p>
+    <p>[10] <a href="https://www.cdc.gov/clean-hands/data-research/facts-stats/hand-sanitizer-facts.html">CDC  Hand Sanitizer Facts</a>
+    </p>
+    <p>[11] <a href="https://www.epa.gov/indoor-air-quality-iaq/what-are-volatile-organic-compounds-vocs">US EPA  What Are Volatile Organic Compounds</a>
+    </p>
+    <p>[12] <a href="https://www.cancer.gov/about-cancer/causes-prevention/risk/substances/formaldehyde/formaldehyde-fact-sheet">National Cancer Institute  Formaldehyde and Cancer Risk</a>
+    </p>
+    <p>[13] <a href="https://www.cdc.gov/chemical-emergencies/chemical-fact-sheets/benzene.html">CDC  Benzene</a>
+    </p>
+    <p>[14] <a href="https://sensirion.com/media/documents/02232963/6294E043/Info_Note_VOC_Index.pdf">Sensirion  What Is Sensirion VOC Index</a>
+    </p>
+    <p>[15] <a href="https://www.epa.gov/indoor-air-quality-iaq/guide-air-cleaners-home">US EPA  Guide to Air Cleaners in the Home</a>
+    </p>
+    <p>[16] <a href="https://pubmed.ncbi.nlm.nih.gov/35213219/">Rosales and colleagues  Indoor Terpene Ozonolysis and Secondary Aerosol Production  Science Advances  2022</a>
+    </p>
+    <p>[17] <a href="https://www.epa.gov/pm-pollution/particulate-matter-pm-basics">US EPA  Particulate Matter Basics</a>
+    </p>
+    <p>[18] <a href="https://www.epa.gov/pmcourse/what-particle-pollution">US EPA  What Is Particle Pollution</a>
+    </p>
+    <p>[19] <a href="https://sensirion.com/products/product-insights/specialist-articles/particulate-matter-sensing-for-air-quality-measurements">Sensirion  Particulate Matter Sensing for Air Quality Measurements</a>
+    </p>
+    <p>[20] <a href="https://www.epa.gov/indoor-air-quality-iaq/indoor-particulate-matter">US EPA  Indoor Particulate Matter</a>
+    </p>
+    <p>[21] <a href="https://www.who.int/news-room/fact-sheets/detail/household-air-pollution-and-health">WHO  Household Air Pollution</a>
+    </p>
+    <p>[22] <a href="https://www.epa.gov/pm-pollution/health-and-environmental-effects-particulate-matter-pm">US EPA  Health and Environmental Effects of Particulate Matter</a>
+    </p>
+    <p>[23] <a href="https://www.epa.gov/indoor-air-quality-iaq/sources-indoor-particulate-matter-pm">US EPA  Sources of Indoor Particulate Matter</a>
+    </p>
+    <p>[24] <a href="https://www.canada.ca/en/health-canada/services/publications/healthy-living/residential-indoor-air-quality-guidelines-carbon-dioxide.html">Health Canada  Residential Indoor Air Quality Guidelines for Carbon Dioxide</a>
+    </p>
+    <p>[25] <a href="https://www.who.int/news-room/questions-and-answers/item/who-global-air-quality-guidelines">WHO  Global Air Quality Guidelines  2021</a>
+    </p>
+    <p>[26] <a href="https://sensirion.com/products/catalog/SCD41">Sensirion  SCD41 Product Information</a>
+    </p>
+    </details>
+  </main>
+  <script>lucide.createIcons();</script>
+  <script src="pwa.js"></script>
+  <script type="module" src="guide.js"></script>
+</body>
+</html>

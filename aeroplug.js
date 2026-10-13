@@ -22,6 +22,7 @@ const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('sidebarOverlay');
 const aeroplugPath = '/aeroplugs/' + (localStorage.getItem('aeroplug-id') || 'plug_01');
+const controlsPath = BASE_PATH + '/controls';
 
 menuToggle?.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); });
 overlay?.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
@@ -67,9 +68,10 @@ function updateAeroplugStatus(lastSeen) {
     : 'Last data received: --';
 }
 
-onValue(ref(db, aeroplugPath), (snapshot) => {
-  const plugData = snapshot.val();
-  updateAeroplugStatus(plugData ? plugData.lastSeen : null);
+onValue(ref(db, aeroplugPath + '/metadata'), (snapshot) => {
+  const metadata = snapshot.val();
+  const lastSeen = metadata?.lastSeen ?? metadata?.lastseen ?? metadata?.['lastSeen:'];
+  updateAeroplugStatus(lastSeen);
 });
 
 setInterval(() => updateAeroplugStatus(aeroplugLastSeenTimestamp), 15000);
@@ -89,9 +91,16 @@ onValue(ref(db, aeroplugPath + '/state'), (snapshot) => {
 });
 
 // --- LISTEN FOR CONTROLS ---
-onValue(ref(db, BASE_PATH + '/controls'), (snapshot) => {
+onValue(ref(db, controlsPath), (snapshot) => {
   const controls = snapshot.val();
   if (!controls) return;
+
+  if (controls.manualRelay1 !== undefined && switchRelay1) {
+    switchRelay1.checked = controls.manualRelay1;
+  }
+  if (controls.manualRelay2 !== undefined && switchRelay2) {
+    switchRelay2.checked = controls.manualRelay2;
+  }
 
   if (controls.isAutoMode !== undefined) {
     if (controls.isAutoMode) {
@@ -115,14 +124,15 @@ onValue(ref(db, BASE_PATH + '/controls'), (snapshot) => {
 
 // --- WRITE CONTROLS ---
 function updateControls(partialState) {
-  update(ref(db, BASE_PATH + '/controls'), partialState);
+  return update(ref(db, controlsPath), partialState)
+    .catch((error) => console.error('Failed to update controls:', error));
 }
 
-function updateRelayCommand(relay, value) {
-  return update(ref(db, aeroplugPath + '/command'), { [relay]: value });
+function updateManualRelay(relay, value) {
+  return updateControls({ [relay]: value });
 }
 
 btnAuto?.addEventListener('click', () => updateControls({ isAutoMode: true }));
 btnManual?.addEventListener('click', () => updateControls({ isAutoMode: false }));
-switchRelay1?.addEventListener('change', (e) => updateRelayCommand('relay1', e.target.checked));
-switchRelay2?.addEventListener('change', (e) => updateRelayCommand('relay2', e.target.checked));
+switchRelay1?.addEventListener('change', (e) => updateManualRelay('manualRelay1', e.target.checked));
+switchRelay2?.addEventListener('change', (e) => updateManualRelay('manualRelay2', e.target.checked));

@@ -1,4 +1,5 @@
 import { db, auth, BASE_PATH } from './firebase.js';
+import { getFirmwareStatus, escapeHtml } from './sensor-status.js';
 import { ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -44,63 +45,46 @@ const METRIC_CONFIG = {
         color: '#10b981',
         path: 'co2',
         unit: ' ppm',
-        zones: [
-            { name: 'Normal', min: 0, max: 1000, color: '#22c55e' },
-            { name: 'Elevated', min: 1000, max: 1500, color: '#eab308' },
-            { name: 'High', min: 1500, max: Infinity, color: '#ef4444' }
-        ]
+        statusMetric: 'co2',
+        zones: []
     },
     voc: {
         label: 'VOC Index',
         color: '#f59e0b',
         path: 'VOCidx',
         unit: '',
-        zones: [
-            { name: 'Normal', min: 0, max: 150, color: '#22c55e' },
-            { name: 'Elevated', min: 150, max: 250, color: '#eab308' },
-            { name: 'High', min: 250, max: Infinity, color: '#ef4444' }
-        ]
+        statusMetric: 'voc',
+        zones: []
     },
     pm25: {
-        label: 'PM2.5 24h Average (µg/m³)',
+        label: 'PM2.5 (µg/m³)',
         color: '#38bdf8',
-        path: 'pm25Avg24h',
+        path: 'pm.pm2p5',
         unit: ' µg/m³',
-        zones: [
-            { name: 'Good', min: 0, max: 15, color: '#22c55e' },
-            { name: 'Elevated', min: 15, max: 25, color: '#eab308' },
-            { name: 'High', min: 25, max: Infinity, color: '#ef4444' }
-        ]
+        statusMetric: 'pm25',
+        zones: []
     },
     temp: {
         label: 'Temperature (°C)',
         color: '#38bdf8',
         path: 'temp',
         unit: ' °C',
-        zones: [
-            { name: 'Cold', min: -50, max: 18, color: '#60a5fa' },
-            { name: 'Comfortable', min: 18, max: 26, color: '#22c55e' },
-            { name: 'Warm', min: 26, max: 30, color: '#f97316' },
-            { name: 'Hot', min: 30, max: Infinity, color: '#ef4444' }
-        ]
+        monitoringOnly: true,
+        zones: []
     },
     humidity: {
         label: 'Humidity (%)',
         color: '#a855f7',
         path: 'humidity',
         unit: ' %',
-        zones: [
-            { name: 'Dry', min: 0, max: 30, color: '#f97316' },
-            { name: 'Comfortable', min: 30, max: 60, color: '#22c55e' },
-            { name: 'Humid', min: 60, max: 70, color: '#eab308' },
-            { name: 'Very humid', min: 70, max: Infinity, color: '#ef4444' }
-        ]
+        monitoringOnly: true,
+        zones: []
     }
 };
 
 METRIC_CONFIG.co2.desc = 'Carbon dioxide concentration measured in ppm. Higher values may indicate insufficient ventilation.';
 METRIC_CONFIG.voc.desc = 'VOC Index shows changes in volatile organic compounds compared with the sensor baseline.';
-METRIC_CONFIG.pm25.desc = 'PM2.5 is shown as a rolling 24-hour average. The graph remains unavailable until AeroCube has collected a full 24 hours of continuous PM2.5 history.';
+METRIC_CONFIG.pm25.desc = 'Current PM2.5 concentration measured in micrograms per cubic metre.';
 METRIC_CONFIG.temp.desc = 'Room temperature measured in degrees Celsius.';
 METRIC_CONFIG.humidity.desc = 'Relative humidity measures the amount of moisture in the air.';
 
@@ -115,80 +99,156 @@ const DAY_MS = 24 * HOUR_MS;
 const PM25_MAX_GAP_MS = 30 * 60 * 1000;
 const GAP_FACTOR = 3;
 const MIN_GAP_MS = 10 * 60 * 1000;
+const DEFAULT_VISIBLE_MS = {
+    '24h': 6 * HOUR_MS,
+    '7d': DAY_MS,
+    'month': 3 * DAY_MS
+};
 
 let currentTimeRange = '24h';
+let chartZoom = 1;
 let allHistoryData = [];
 let gapThresholdMs = MIN_GAP_MS;
 let pm25HistoryReady = false;
 let pm25CollectionStartedAt = null;
 
 const chartInstances = {};
+const chartViews = {};
+const chartZoomInput = document.getElementById('chart-zoom');
+const chartZoomValue = document.getElementById('chart-zoom-value');
 
-function getZone(config, value) {
-    return config.zones.find(
-        zone => value >= zone.min && value < zone.max
-    ) || null;
+function visibleDuration(windowRange) {
+    return Math.min(
+        windowRange.end - windowRange.start,
+        DEFAULT_VISIBLE_MS[currentTimeRange] / chartZoom
+    );
 }
 
-function zoneGradient(chart, config, alpha) {
-    if (!config.zones.length) {
-        return config.color + (alpha || '');
+function updateZoomLabel() {
+    const hours = DEFAULT_VISIBLE_MS[currentTimeRange] / chartZoom / HOUR_MS;
+    const amount = Number((hours >= 24 ? hours / 24 : hours).toFixed(1));
+    const unit = hours >= 24 ? 'day' : 'hour';
+    const duration = amount + ' ' + unit + (amount === 1 ? '' : 's');
+
+    if (chartZoomValue) {
+        chartZoomValue.textContent = chartZoom + '× · ' + duration + ' visible';
+    }
+    chartZoomInput?.setAttribute('aria-valuetext', duration + ' visible');
+}
+
+function applyChartView(metricKey) {
+    const view = chartViews[metricKey];
+    const chart = chartInstances[metricKey];
+    if (!view?.hasData || !chart) return;
+
+    chart.options.scales.x.min = view.visibleStart;
+    chart.options.scales.x.max = view.visibleStart + view.duration;
+    const label = document.getElementById('window-' + metricKey);
+    if (label) {
+        label.textContent = 'Showing: ' + formatDateTime(view.visibleStart) +
+            ' - ' + formatDateTime(view.visibleStart + view.duration);
+    }
+    chart.update('none');
+}
+
+function configureChartView(metricKey, windowRange) {
+    let view = chartViews[metricKey];
+    if (!view) {
+        const scroll = document.getElementById('chart-' + metricKey).closest('.chart-scroll');
+        view = chartViews[metricKey] = {
+            scroll,
+            timeline: scroll.querySelector('.chart-timeline'),
+            wrapper: scroll.querySelector('.chart-wrapper'),
+            atLatest: true,
+            frame: null
+        };
+        scroll.addEventListener('scroll', () => {
+            if (view.frame !== null) return;
+            view.frame = window.requestAnimationFrame(() => {
+                view.frame = null;
+                if (!view.hasData) return;
+                // Assigned scroll offsets may be rounded; retain the precise time window.
+                if (scroll.scrollLeft === view.programmaticScrollLeft) return;
+                view.programmaticScrollLeft = null;
+                const distance = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+                const position = distance ? Math.min(1, Math.max(0, scroll.scrollLeft / distance)) : 1;
+                view.visibleStart = view.windowRange.start + position * (
+                    view.windowRange.end - view.windowRange.start - view.duration
+                );
+                view.atLatest = distance - scroll.scrollLeft < 2;
+                applyChartView(metricKey);
+            });
+        }, { passive: true });
     }
 
-    const { ctx, chartArea, scales } = chart;
-
-    if (!chartArea || !scales.y) {
-        return config.color;
+    const duration = visibleDuration(windowRange);
+    const maximumStart = windowRange.end - duration;
+    let start = view.visibleStart;
+    if (view.range !== currentTimeRange || view.atLatest) {
+        start = maximumStart;
+    } else if (view.zoom !== chartZoom) {
+        start += (view.duration - duration) / 2;
     }
+    start = Math.min(maximumStart, Math.max(windowRange.start, start));
 
-    const y = scales.y;
-    const span = y.max - y.min;
+    const width = Math.max(1, view.scroll.clientWidth);
+    view.wrapper.style.width = width + 'px';
+    view.timeline.style.width = Math.ceil(
+        width * (windowRange.end - windowRange.start) / duration
+    ) + 'px';
+    view.windowRange = windowRange;
+    view.visibleStart = start;
+    view.duration = duration;
+    view.range = currentTimeRange;
+    view.zoom = chartZoom;
+    view.hasData = true;
+    const timeDistance = maximumStart - windowRange.start;
+    const scrollDistance = Math.max(0, view.scroll.scrollWidth - width);
+    view.scroll.scrollLeft = timeDistance
+        ? (start - windowRange.start) / timeDistance * scrollDistance
+        : 0;
+    view.programmaticScrollLeft = view.scroll.scrollLeft;
+    view.atLatest = maximumStart - start < 1000;
+    return { start, end: start + duration };
+}
 
-    if (!(span > 0)) {
-        return config.color;
-    }
-
-    const frac = value => Math.min(
-        1,
-        Math.max(
-            0,
-            (value - y.min) / span
-        )
-    );
-
-    const gradient = ctx.createLinearGradient(
-        0,
-        chartArea.bottom,
-        0,
-        chartArea.top
-    );
-
-    config.zones.forEach(zone => {
-        const start = frac(
-            Math.max(
-                zone.min,
-                y.min
-            )
-        );
-
-        const end = frac(
-            Math.min(
-                zone.max,
-                y.max
-            )
-        );
-
-        if (end <= start) {
-            return;
-        }
-
-        const color = zone.color + (alpha || '');
-
-        gradient.addColorStop(start, color);
-        gradient.addColorStop(end, color);
+function refreshChartViews() {
+    Object.entries(chartViews).forEach(([metricKey, view]) => {
+        if (!view.hasData) return;
+        configureChartView(metricKey, view.windowRange);
+        chartInstances[metricKey]?.resize();
+        applyChartView(metricKey);
     });
+}
 
-    return gradient;
+chartZoomInput?.addEventListener('input', () => {
+    chartZoom = Number(chartZoomInput.value);
+    updateZoomLabel();
+    refreshChartViews();
+});
+
+document.getElementById('btn-chart-latest')?.addEventListener('click', () => {
+    Object.values(chartViews).forEach(view => { view.atLatest = true; });
+    refreshChartViews();
+});
+
+let resizeFrame = null;
+window.addEventListener('resize', () => {
+    if (resizeFrame !== null) return;
+    resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null;
+        refreshChartViews();
+    });
+});
+
+function pointColor(config,point) {
+    if (config.monitoringOnly) return config.color;
+    if (config.statusMetric === 'pm25' && Number.isFinite(point?.y)) {
+        if (point.y > 15) return '#ef4444';
+        if (point.y > 5) return '#f59e0b';
+        return '#10b981';
+    }
+    return point?.firmwareStatus?.color || '#94a3b8';
 }
 
 function getTimestampFromPushId(pushId) {
@@ -512,7 +572,10 @@ function buildSeries(filtered, config, windowRange) {
             y: getMetricValue(
                 item,
                 config
-            )
+            ),
+            firmwareStatus: config.statusMetric
+                ? getFirmwareStatus(item, config.statusMetric, 'Not recorded')
+                : null
         });
 
         previousTimestamp = item.timestamp;
@@ -656,6 +719,10 @@ const zonesAndGapsPlugin = {
                 ),
                 chartArea.right
             );
+
+            if (right <= left) {
+                continue;
+            }
 
             const width = Math.max(
                 right - left,
@@ -820,48 +887,6 @@ const fmtNum = value =>
         }
     );
 
-function levelKey(config) {
-    if (!config.zones.length) {
-        return '';
-    }
-
-    const unit = config.unit;
-
-    return config.zones.map(
-        (zone, index) => {
-            let range;
-
-            if (index === 0) {
-                range =
-                    '< ' +
-                    fmtNum(zone.max) +
-                    unit;
-            } else if (!isFinite(zone.max)) {
-                range =
-                    fmtNum(zone.min) +
-                    unit +
-                    '+';
-            } else {
-                range =
-                    fmtNum(zone.min) +
-                    '–' +
-                    fmtNum(zone.max) +
-                    unit;
-            }
-
-            return (
-                '<span><i style="background:' +
-                zone.color +
-                '"></i>' +
-                zone.name +
-                ' ' +
-                range +
-                '</span>'
-            );
-        }
-    ).join('');
-}
-
 function timeAgo(ms) {
     const minutes = Math.round(
         (Date.now() - ms) / 60000
@@ -892,12 +917,11 @@ function formatDateTime(timestamp) {
     ).toLocaleString(
         'en-US',
         {
-            month: 'numeric',
+            month: 'short',
             day: 'numeric',
             year: 'numeric',
             hour: 'numeric',
             minute: '2-digit',
-            second: '2-digit',
             hour12: true
         }
     );
@@ -917,62 +941,21 @@ function formatTick(value) {
         );
     }
 
-    if (currentTimeRange === '7d') {
-        return date.toLocaleDateString(
-            'en-US',
-            {
-                weekday: 'short',
-                day: 'numeric'
-            }
-        );
-    }
-
-    return date.toLocaleDateString(
-        'en-US',
-        {
-            month: 'short',
-            day: 'numeric'
-        }
-    );
+    return [
+        date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    ];
 }
 
 function renderStats(metricKey, config, last, top) {
-    const element = document.getElementById(
-        'stats-' + metricKey
-    );
-
-    if (!element) {
-        return;
-    }
-
-    const getColor = value => {
-        const zone = getZone(
-            config,
-            value
-        );
-
-        return zone
-            ? zone.color
-            : config.color;
-    };
-
-    element.innerHTML =
-        '<span>Latest: <b style="color:' +
-        getColor(last.y) +
-        '">' +
-        fmtNum(last.y) +
-        config.unit +
-        '</b> · ' +
-        timeAgo(last.x) +
-        '</span>' +
-        '<span>Peak: <b style="color:' +
-        getColor(top.y) +
-        '">' +
-        fmtNum(top.y) +
-        config.unit +
-        '</b> · ' +
-        formatDateTime(top.x) +
-        '</span>';
+    const element = document.getElementById('stats-' + metricKey);
+    if (!element) return;
+    const entry = (label, point, when) =>
+        '<span>' + label + ': <b style="color:' + pointColor(config, point) + '">' +
+        fmtNum(point.y) + config.unit + '</b> · ' + when + '</span>';
+    element.innerHTML = entry('Latest', last, timeAgo(last.x));
+    if (config.monitoringOnly) return;
+    element.innerHTML += entry('Peak', top, formatDateTime(top.x));
 }
 
 function renderDescription(metricKey, config) {
@@ -1001,11 +984,12 @@ function renderDescription(metricKey, config) {
         style.id = 'chart-desc-style';
 
         style.textContent =
-            '.chart-desc{margin:0 0 10px;font-size:12px;line-height:1.5;color:#94a3b8}' +
-            '.chart-desc-stats{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:12px}' +
+            '.chart-desc{margin:0 0 10px;font-size:13px;line-height:1.5;color:#94a3b8}' +
+            '.chart-desc-stats{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:13px}' +
             '.chart-desc-stats b{font-weight:700}' +
             '.chart-desc-key{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:11px}' +
-            '.chart-desc-key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}';
+            '.chart-desc-key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}' +
+            '.chart-window-label{margin-top:8px;color:#cbd5e1}';
 
         document.head.appendChild(
             style
@@ -1024,13 +1008,11 @@ function renderDescription(metricKey, config) {
         '<div class="chart-desc-stats" id="stats-' +
         metricKey +
         '"></div>' +
-        '<div class="chart-desc-key">' +
-        levelKey(config) +
-        '</div>';
+        '<div class="chart-window-label" id="window-' + metricKey + '"></div>';
 
     (
         canvas.closest(
-            '.chart-wrapper'
+            '.chart-viewport'
         ) ||
         canvas.parentElement
     ).insertAdjacentElement(
@@ -1041,15 +1023,19 @@ function renderDescription(metricKey, config) {
 
 function buildTicks(min, max) {
     const ticks = [];
+    const steps = [
+        HOUR_MS / 4, HOUR_MS / 2, HOUR_MS, 2 * HOUR_MS,
+        4 * HOUR_MS, 6 * HOUR_MS, 12 * HOUR_MS, DAY_MS
+    ];
+    const step = steps.find(value => value >= (max - min) / 8) || DAY_MS;
 
-    if (currentTimeRange === '24h') {
-        const step = 4 * HOUR_MS;
+    if (step < DAY_MS) {
 
         for (
             let time =
                 Math.ceil(
-                    min / HOUR_MS
-                ) * HOUR_MS;
+                    min / step
+                ) * step;
             time <= max;
             time += step
         ) {
@@ -1058,11 +1044,6 @@ function buildTicks(min, max) {
             });
         }
     } else {
-        const stepDays =
-            currentTimeRange === 'month'
-                ? 5
-                : 1;
-
         const date = new Date(min);
 
         date.setHours(
@@ -1080,8 +1061,7 @@ function buildTicks(min, max) {
             });
 
             date.setDate(
-                date.getDate() +
-                stepDays
+                date.getDate() + 1
             );
         }
     }
@@ -1137,22 +1117,6 @@ function renderMetricSummary(metricKey, filteredData) {
         !highestElement ||
         !lowestElement
     ) {
-        return;
-    }
-
-    if (
-        metricKey === 'pm25' &&
-        !pm25HistoryReady
-    ) {
-        averageElement.innerText =
-            '0' + config.unit;
-
-        highestElement.innerText =
-            '0' + config.unit;
-
-        lowestElement.innerText =
-            '0' + config.unit;
-
         return;
     }
 
@@ -1330,6 +1294,12 @@ function renderChart(metricKey, filtered, windowRange) {
         if (stats) {
             stats.innerHTML = '';
         }
+        const windowLabel = document.getElementById('window-' + metricKey);
+        if (windowLabel) windowLabel.textContent = '';
+        const scroll = canvas.closest('.chart-scroll');
+        scroll.style.visibility = 'hidden';
+        scroll.tabIndex = -1;
+        if (chartViews[metricKey]) chartViews[metricKey].hasData = false;
 
         canvas.style.display = 'none';
         emptyState.style.display = 'flex';
@@ -1343,17 +1313,6 @@ function renderChart(metricKey, filtered, windowRange) {
             lucide.createIcons();
         }
     };
-
-    if (
-        metricKey === 'pm25' &&
-        !pm25HistoryReady
-    ) {
-        showEmpty(
-            getPm25CollectionMessage()
-        );
-
-        return;
-    }
 
     setEmptyMessage(
         emptyState,
@@ -1390,6 +1349,10 @@ function renderChart(metricKey, filtered, windowRange) {
 
     canvas.style.display = 'block';
     emptyState.style.display = 'none';
+    const scroll = canvas.closest('.chart-scroll');
+    scroll.style.visibility = 'visible';
+    scroll.tabIndex = 0;
+    const visibleWindow = configureChartView(metricKey, windowRange);
 
     const realPoints =
         points.filter(
@@ -1402,35 +1365,25 @@ function renderChart(metricKey, filtered, windowRange) {
             realPoints.length - 1
         ];
 
-    const topPoint =
-        realPoints.reduce(
+    const topPoint = config.monitoringOnly
+        ? lastPoint
+        : realPoints.reduce(
             (a, b) =>
                 b.y > a.y
                     ? b
                     : a
         );
 
-    const lastZone = getZone(
-        config,
-        lastPoint.y
-    );
-
     const samePoint =
         lastPoint.x ===
         topPoint.x;
 
-    const latestColor =
-        lastZone
-            ? lastZone.color
-            : config.color;
+    const latestColor = pointColor(config, lastPoint);
 
-    const peak = {
+    const peak = config.monitoringOnly ? null : {
         x: topPoint.x,
         y: topPoint.y,
-        ring:
-            samePoint
-                ? latestColor
-                : '#ef4444',
+        ring: pointColor(config, topPoint),
         label:
             (
                 samePoint
@@ -1444,7 +1397,7 @@ function renderChart(metricKey, filtered, windowRange) {
     };
 
     const latest =
-        samePoint
+        !config.monitoringOnly && samePoint
             ? null
             : {
                 x: lastPoint.x,
@@ -1465,14 +1418,15 @@ function renderChart(metricKey, filtered, windowRange) {
         topPoint
     );
 
-    const average =
-        realValues.reduce(
+    const average = config.monitoringOnly
+        ? null
+        : realValues.reduce(
             (sum, value) =>
                 sum + value,
             0
         ) / realValues.length;
 
-    const averagePoints = [
+    const averagePoints = config.monitoringOnly ? [] : [
         {
             x: windowRange.start,
             y: average
@@ -1520,24 +1474,27 @@ function renderChart(metricKey, filtered, windowRange) {
         chart.data.datasets[0].pointRadius =
             pointRadius;
 
-        chart.data.datasets[1].data =
-            averagePoints;
+        if (!config.monitoringOnly) {
+            chart.data.datasets[1].data =
+                averagePoints;
 
-        chart.data.datasets[1].label =
-            'Average: ' +
-            average.toFixed(1) +
-            config.unit;
+            chart.data.datasets[1].label =
+                'Average: ' +
+                average.toFixed(1) +
+                config.unit;
+        }
 
         chart.options.scales.x.min =
-            windowRange.start;
+            visibleWindow.start;
 
         chart.options.scales.x.max =
-            windowRange.end;
+            visibleWindow.end;
 
         chart.options.scales.x.title.text =
             xTitle;
 
-        chart.update('none');
+        chart.resize();
+        applyChartView(metricKey);
 
         return;
     }
@@ -1557,70 +1514,22 @@ function renderChart(metricKey, filtered, windowRange) {
                         label: config.label,
                         data: points,
 
-                        borderColor:
-                            context =>
-                                zoneGradient(
-                                    context.chart,
-                                    config,
-                                    ''
-                                ),
-
-                        backgroundColor:
-                            context =>
-                                zoneGradient(
-                                    context.chart,
-                                    config,
-                                    '33'
-                                ),
-
+                        borderColor: config.monitoringOnly ? config.color : '#94a3b8',
+                        backgroundColor: (config.monitoringOnly ? config.color : '#94a3b8') + '22',
+                        segment: {
+                            borderColor: context => pointColor(config,
+                                context.chart.data.datasets[context.datasetIndex].data[context.p1DataIndex])
+                        },
                         borderWidth: 2,
                         tension: 0.35,
                         fill: true,
                         spanGaps: false,
                         pointRadius,
                         pointHoverRadius: 6,
-
-                        pointBackgroundColor:
-                            context => {
-                                const value =
-                                    context.parsed &&
-                                    context.parsed.y;
-
-                                const zone =
-                                    value === null ||
-                                    value === undefined
-                                        ? null
-                                        : getZone(
-                                            config,
-                                            value
-                                        );
-
-                                return zone
-                                    ? zone.color
-                                    : config.color;
-                            },
-
-                        pointBorderColor:
-                            context => {
-                                const value =
-                                    context.parsed &&
-                                    context.parsed.y;
-
-                                const zone =
-                                    value === null ||
-                                    value === undefined
-                                        ? null
-                                        : getZone(
-                                            config,
-                                            value
-                                        );
-
-                                return zone
-                                    ? zone.color
-                                    : config.color;
-                            }
+                        pointBackgroundColor: context => pointColor(config, context.raw),
+                        pointBorderColor: context => pointColor(config, context.raw)
                     },
-                    {
+                    ...(config.monitoringOnly ? [] : [{
                         label:
                             'Average: ' +
                             average.toFixed(1) +
@@ -1634,13 +1543,14 @@ function renderChart(metricKey, filtered, windowRange) {
                         pointRadius: 0,
                         pointHoverRadius: 0,
                         fill: false
-                    }
+                    }])
                 ]
             },
 
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
 
                 interaction: {
                     mode: 'nearest',
@@ -1650,7 +1560,7 @@ function renderChart(metricKey, filtered, windowRange) {
 
                 plugins: {
                     legend: {
-                        display: true,
+                        display: !config.monitoringOnly,
                         position: 'top',
                         align: 'end',
 
@@ -1692,41 +1602,16 @@ function renderChart(metricKey, filtered, windowRange) {
                                         )
                                         : '',
 
-                            labelColor:
-                                item => {
-                                    const zone = getZone(
-                                        config,
-                                        item.parsed.y
-                                    );
-
-                                    const color =
-                                        zone
-                                            ? zone.color
-                                            : config.color;
-
-                                    return {
-                                        borderColor: color,
-                                        backgroundColor: color
-                                    };
-                                },
-
-                            label:
-                                item => {
-                                    const zone = getZone(
-                                        config,
-                                        item.parsed.y
-                                    );
-
-                                    return (
-                                        item.parsed.y.toFixed(1) +
-                                        config.unit +
-                                        (
-                                            zone
-                                                ? ' · ' + zone.name
-                                                : ''
-                                        )
-                                    );
-                                }
+                            labelColor: item => {
+                                const color = pointColor(config, item.raw);
+                                return { borderColor: color, backgroundColor: color };
+                            },
+                            label: item => {
+                                const value = item.parsed.y.toFixed(1) + config.unit;
+                                if (config.monitoringOnly || config.statusMetric === 'pm25') return value;
+                                return value + ' · Status: ' +
+                                    (item.raw.firmwareStatus?.label || 'Not recorded');
+                            }
                         }
                     }
                 },
@@ -1735,8 +1620,8 @@ function renderChart(metricKey, filtered, windowRange) {
                     x: {
                         type: 'linear',
 
-                        min: windowRange.start,
-                        max: windowRange.end,
+                        min: visibleWindow.start,
+                        max: visibleWindow.end,
 
                         bounds: 'ticks',
 
@@ -1754,7 +1639,7 @@ function renderChart(metricKey, filtered, windowRange) {
                             color: '#64748b',
 
                             font: {
-                                size: 11
+                                size: 12
                             },
 
                             padding: {
@@ -1769,7 +1654,7 @@ function renderChart(metricKey, filtered, windowRange) {
                             minRotation: 0,
 
                             font: {
-                                size: 11
+                                size: 12
                             },
 
                             callback:
@@ -1791,7 +1676,7 @@ function renderChart(metricKey, filtered, windowRange) {
                             color: '#94a3b8',
 
                             font: {
-                                size: 11
+                                size: 12
                             }
                         },
 
@@ -1799,7 +1684,7 @@ function renderChart(metricKey, filtered, windowRange) {
                             color: '#94a3b8',
 
                             font: {
-                                size: 11
+                                size: 12
                             }
                         },
 
@@ -1822,9 +1707,11 @@ function renderChart(metricKey, filtered, windowRange) {
     chartInstances[
         metricKey
     ] = chart;
+    applyChartView(metricKey);
 }
 
 function renderAllCharts() {
+    updateZoomLabel();
     const windowRange = getTimeWindow(
         currentTimeRange
     );

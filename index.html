@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AeroCube | Dashboard</title>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@latest/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@latest/dist/chartjs-plugin-annotation.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
@@ -24,7 +26,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo">
       </div>
       <div class="nav-links">
         <a href="index.html" class="nav-item active">
@@ -38,6 +40,10 @@
         <a href="History.html" class="nav-item">
           <i data-lucide="clock"></i>
           <span>History</span>
+        </a>
+        <a href="guide.html" class="nav-item">
+          <i data-lucide="book-open-check"></i>
+          <span>Guide</span>
         </a>
         <a href="aeroplug.html" class="nav-item">
           <i data-lucide="plug"></i>
@@ -68,16 +74,9 @@
     <header class="header">
       <div class="header-title">
         <h1>AeroCube Dashboard</h1>
-        <p class="header-subtitle">Real-time indoor air quality monitoring</p>
+        <p class="header-subtitle">Indoor Air Quality Monitoring</p>
       </div>
       <div class="header-badges">
-        <div class="badge badge-live">
-          <div class="badge-dot"></div>
-          LIVE SYNC
-        </div>
-        <div class="badge badge-device" id="device-connection-badge">
-          <span id="device-status-text">CONNECTING...</span>
-        </div>
         <button class="notification-button" id="btn-notifications" type="button">
           <i data-lucide="bell"></i>
           <span>Enable Notifications</span>
@@ -88,85 +87,99 @@
       <div class="device-status-left">
         <div class="device-indicator" id="device-indicator"></div>
         <div>
-          <div class="device-name" id="device-name">AeroCube 01</div>
+          <div class="device-name" id="device-name">AeroCube Status</div>
           <div class="device-last-seen" id="device-last-seen">Last data received: --</div>
         </div>
       </div>
       <div class="device-status-right">
-        <span class="device-uptime" id="device-uptime"></span>
-        <div class="top-buzzer-control">
-          <div>
-            <div class="top-buzzer-label">AeroCube Buzzer</div>
-            <div class="top-buzzer-state" id="text-buzzer">--</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="switch-buzzer" disabled>
-            <span class="slider"></span>
-          </label>
+        <div class="badge badge-device" id="device-connection-badge">
+          <span id="device-status-text">CONNECTING...</span>
         </div>
+        <span class="device-uptime" id="device-uptime"></span>
       </div>
     </section>
     <section class="metrics-grid">
+      <div class="card" id="card-pm25-24h">
+        <div class="card-header">
+          <div class="card-icon"><i data-lucide="circle-dot"></i></div>
+          PM2.5
+          <a class="guide-learn-more" href="guide.html#pm25" aria-label="Learn more about PM2.5"><i data-lucide="info"></i></a>
+        </div>
+        <div class="card-body">
+          <div class="pm25-current-reading">
+            <div class="pm25-reading-label">Current Reading</div>
+            <div class="pm25-reading-value" id="val-pm25-current">--</div>
+            <div class="pm25-reading-unit">µg/m³</div>
+          </div>
+          <div class="pm25-summary-row">
+            <div class="pm25-average">24-Hour Average: <strong id="val-pm25-24h">--</strong></div>
+            <div class="card-status" id="status-pm25-24h">Collecting Data</div>
+          </div>
+          <p class="sensor-note" id="pm25-history-note">Waiting for 24-hour PM2.5 history.</p>
+        </div>
+      </div>
       <div class="card" id="card-co2">
         <div class="card-header">
-          <div class="card-icon">
-            <i data-lucide="wind"></i>
-          </div>
-          CO<sub>2</sub>
+          <div class="card-icon"><i data-lucide="wind"></i></div>
+          CO<sub>2</sub> LEVELS
+          <a class="guide-learn-more" href="guide.html#co2" aria-label="Learn more about CO₂"><i data-lucide="info"></i></a>
+          
         </div>
         <div class="card-body">
           <div class="card-value" id="val-co2">-- <span>ppm</span></div>
-          <div class="card-status" id="status-co2">Awaiting data</div>
-        </div>
-      </div>
-      <div class="card" id="card-pm25-24h">
-        <div class="card-header">
-          <div class="card-icon">
-            <i data-lucide="circle-dot"></i>
+          <div class="card-status" id="status-co2">Not reported</div>
+          <div class="co2-gauge-widget">
+            <div class="co2-gauge-chart">
+              <canvas id="co2-gauge-canvas" aria-label="CO2 levels gauge"></canvas>
+            </div>
+            <div class="co2-gauge-captions" aria-hidden="true">
+              <span>Lower CO₂</span>
+              <span>Higher CO₂</span>
+            </div>
+            <div class="co2-gauge-badge" id="co2-gauge-status">No data</div>
           </div>
-          24-HOUR AVG PM2.5
-        </div>
-        <div class="card-body">
-          <div class="card-value" id="val-pm25-24h">-- <span>µg/m³</span></div>
-          <div class="card-status" id="status-pm25-24h">Waiting for 24-hour history</div>
         </div>
       </div>
+
       <div class="card" id="card-voc">
         <div class="card-header">
-          <div class="card-icon">
-            <i data-lucide="flask-conical"></i>
-          </div>
+          <div class="card-icon"><i data-lucide="flask-conical"></i></div>
           VOC INDEX
+          <a class="guide-learn-more" href="guide.html#voc" aria-label="Learn more about VOC Index"><i data-lucide="info"></i></a>
         </div>
-        <div class="card-body">
-          <div class="card-value" id="val-voc">--</div>
-          <div class="card-status" id="status-voc">Awaiting data</div>
+        <div class="voc-gauge">
+          <div class="voc-gauge-chart">
+            <canvas id="voc-gauge-canvas" aria-label="VOC Index gauge"></canvas>
+            <div class="voc-gauge-readout">
+              <div class="voc-gauge-value" id="val-voc">--</div>
+              <div class="voc-gauge-unit">Index pts</div>
+            </div>
+          </div>
+          <div class="voc-gauge-scale" aria-hidden="true"><span>0</span><span>500</span></div>
+          <div class="voc-status-badge" id="status-voc">--</div>
         </div>
       </div>
-      <div class="card pm-detail-card" id="card-environment-detail">
+      <div class="card" id="card-environment-detail">
         <div class="card-header">
-          <div class="card-icon">
-            <i data-lucide="thermometer"></i>
-          </div>
+          <div class="card-icon"><i data-lucide="thermometer"></i></div>
           ENVIRONMENT
         </div>
         <div class="pm-mini-grid">
           <div class="pm-mini-box">
-            <div class="pm-mini-label">TEMPERATURE</div>
+            <div class="pm-mini-label"><i class="temperature-icon" data-lucide="thermometer"></i> TEMPERATURE</div>
             <div class="pm-mini-val" id="val-temp">-- <span>°C</span></div>
           </div>
           <div class="pm-mini-box">
-            <div class="pm-mini-label">HUMIDITY</div>
+            <div class="pm-mini-label"><i class="humidity-icon" data-lucide="droplets"></i> HUMIDITY</div>
             <div class="pm-mini-val" id="val-humidity">-- <span>%</span></div>
           </div>
         </div>
       </div>
       <div class="card pm-detail-card" id="card-pm-detail">
         <div class="card-header">
-          <div class="card-icon">
-            <i data-lucide="grid"></i>
-          </div>
+          <div class="card-icon"><i data-lucide="grid"></i></div>
           PARTICULATE MATTER
+          <a class="guide-learn-more" href="guide.html#pm25" aria-label="Learn more about particulate matter"><i data-lucide="info"></i></a>
         </div>
         <div class="pm-mini-grid">
           <div class="pm-mini-box">
@@ -190,13 +203,9 @@
     </section>
     <section class="insights-grid">
       <div class="insight-card">
-        <h3>Dynamic Insights</h3>
+        <h3 class="insight-heading"><i data-lucide="wind"></i>Dynamic Insights</h3>
         <div class="insight-body">
-          <div class="card-icon">
-            <i data-lucide="wind"></i>
-          </div>
           <div class="insight-desc">
-            <strong class="insight-label">AIR QUALITY ANALYSIS</strong>
             <div id="insight-text">
               <div>Waiting for telemetry data...</div>
             </div>
@@ -204,91 +213,12 @@
         </div>
       </div>
       <div class="insight-card">
-        <h3>Actionable Recommendations</h3>
+        <h3 class="insight-heading"><i data-lucide="check-circle-2"></i>Actionable Recommendations</h3>
         <div class="insight-body">
-          <div class="card-icon">
-            <i data-lucide="check-circle-2"></i>
-          </div>
           <div class="insight-desc">
-            <strong class="insight-label">SYSTEM STATUS</strong>
             <div class="recommendations-content" id="recommendations-content">
               <p class="rec-waiting">Waiting for telemetry data to generate recommendations...</p>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <section class="guide-section">
-      <div class="guide-header">
-        <h2>
-          <i data-lucide="book-open-check"></i>
-          Indoor Air Quality Guide
-        </h2>
-        <p class="guide-subtitle">Simple ways to understand and improve indoor air conditions</p>
-      </div>
-      <div class="guide-body">
-        <div class="guide-tips">
-          <div class="guide-tip">
-            <div class="guide-tip-icon">
-              <i data-lucide="wind"></i>
-            </div>
-            <div>
-              <strong>Ventilate regularly</strong>
-              <p>Open windows or use mechanical ventilation when CO<sub>2</sub> rises.</p>
-            </div>
-          </div>
-          <div class="guide-tip">
-            <div class="guide-tip-icon">
-              <i data-lucide="spray-can"></i>
-            </div>
-            <div>
-              <strong>Reduce VOC sources</strong>
-              <p>Limit smoke, strong fragrances, aerosols, and harsh cleaning products.</p>
-            </div>
-          </div>
-          <div class="guide-tip">
-            <div class="guide-tip-icon">
-              <i data-lucide="air-vent"></i>
-            </div>
-            <div>
-              <strong>Control particles</strong>
-              <p>Reduce dust, smoke, cooking emissions, and other sources when PM2.5 is elevated.</p>
-            </div>
-          </div>
-        </div>
-        <div class="guide-reference">
-          <h3>Reading the measurements</h3>
-          <div class="guide-table-wrap">
-            <table class="guide-table">
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th>Good</th>
-                  <th>Elevated</th>
-                  <th>Poor</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>CO<sub>2</sub></td>
-                  <td class="g-good">&lt; 1000 ppm</td>
-                  <td class="g-elevated">1000–1499 ppm</td>
-                  <td class="g-poor">1500+ ppm</td>
-                </tr>
-                <tr>
-                  <td>VOC Index</td>
-                  <td class="g-good">&lt; 150</td>
-                  <td class="g-elevated">150–249</td>
-                  <td class="g-poor">250+</td>
-                </tr>
-                <tr>
-                  <td>24-hour PM2.5 average</td>
-                  <td class="g-good">≤ 15 µg/m³</td>
-                  <td class="g-elevated">&gt; 15–25 µg/m³</td>
-                  <td class="g-poor">&gt; 25 µg/m³</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

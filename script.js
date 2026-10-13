@@ -1,10 +1,7 @@
 import{db,auth,BASE_PATH}from'./firebase.js';
-import{ref,onValue,update,get}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getFirmwareStatus, describeFirmwareStatus, escapeHtml } from './sensor-status.js';
+import{ref,onValue,get}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import{signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-// ============================================================
-// AUTHENTICATION
-// ============================================================
 
 onAuthStateChanged(auth,user=>{
 if(!user)window.location.href='Registration.html';
@@ -16,13 +13,9 @@ try{
 await signOut(auth);
 window.location.href='Registration.html';
 }catch(err){
-console.error('Logout error:',err);
+console.error("Logout error:",err);
 }
 });
-
-// ============================================================
-// MENU AND DEVICE SELECTION
-// ============================================================
 
 const menuToggle=document.getElementById('menuToggle');
 const sidebar=document.getElementById('sidebar');
@@ -34,7 +27,6 @@ const aerocubeIdInput=document.getElementById('aerocube-id');
 const deviceName=document.getElementById('device-name');
 
 if(aerocubeIdInput)aerocubeIdInput.value=savedAeroCubeId;
-if(deviceName)deviceName.innerText=savedAeroCubeId;
 
 deviceSelectorForm?.addEventListener('submit',e=>{
 e.preventDefault();
@@ -67,14 +59,14 @@ window.addEventListener('resize',()=>{
 if(window.innerWidth>768&&sidebar?.classList.contains('open'))toggleMenu();
 });
 
-// ============================================================
-// DASHBOARD ELEMENTS
-// ============================================================
-
 const valCo2=document.getElementById('val-co2');
+const co2GaugeCanvas=document.getElementById('co2-gauge-canvas');
+const co2GaugeStatus=document.getElementById('co2-gauge-status');
 const valPm25=document.getElementById('val-pm25');
+const valPm25Current=document.getElementById('val-pm25-current');
 const valPm25Avg24h=document.getElementById('val-pm25-24h');
 const valVoc=document.getElementById('val-voc');
+const vocGaugeCanvas=document.getElementById('voc-gauge-canvas');
 const valPm10=document.getElementById('val-pm10');
 const valTemp=document.getElementById('val-temp');
 const valHumidity=document.getElementById('val-humidity');
@@ -83,19 +75,223 @@ const valPm4=document.getElementById('val-pm4');
 const statusCo2=document.getElementById('status-co2');
 const statusPm25Avg24h=document.getElementById('status-pm25-24h');
 const statusVoc=document.getElementById('status-voc');
+let vocGauge=null;
+let co2Gauge=null;
+const CO2_GAUGE_MAX=3000;
+const chartAnnotationPlugin=window['chartjs-plugin-annotation'];
+
+if(chartAnnotationPlugin&&typeof Chart!=='undefined'){
+Chart.register(chartAnnotationPlugin);
+}
+
+const co2GaugePointerPlugin={
+id:'co2GaugePointer',
+afterDraw(chart){
+const value=Number(chart.$co2Value);
+const xScale=chart.scales?.x;
+const yScale=chart.scales?.y;
+if(!Number.isFinite(value)||!xScale||!yScale)return;
+const x=xScale.getPixelForValue(Math.min(CO2_GAUGE_MAX,Math.max(0,value)));
+const y=yScale.top-2;
+const ctx=chart.ctx;
+ctx.save();
+ctx.beginPath();
+ctx.moveTo(x,y);
+ctx.lineTo(x-5,y-7);
+ctx.lineTo(x+5,y-7);
+ctx.closePath();
+ctx.fillStyle='#f8fafc';
+ctx.shadowColor='rgba(248,250,252,.55)';
+ctx.shadowBlur=6;
+ctx.fill();
+ctx.restore();
+}
+};
+
+function createCO2Gauge(){
+if(!co2GaugeCanvas||typeof Chart==='undefined'||!chartAnnotationPlugin)return;
+co2Gauge=new Chart(co2GaugeCanvas,{
+type:'bar',
+data:{
+labels:['CO₂'],
+datasets:[
+{label:'Harmless',data:[1000],backgroundColor:'#10b981',borderSkipped:false,borderRadius:{topLeft:7,bottomLeft:7},barPercentage:1,categoryPercentage:1},
+{label:'Elevated',data:[1000],backgroundColor:'#f59e0b',borderSkipped:false,barPercentage:1,categoryPercentage:1},
+{label:'Unacceptable',data:[1000],backgroundColor:'#ef4444',borderSkipped:false,borderRadius:{topRight:7,bottomRight:7},barPercentage:1,categoryPercentage:1}
+]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+indexAxis:'y',
+animation:false,
+layout:{padding:{top:12,right:0,bottom:0,left:0}},
+plugins:{
+legend:{display:false},
+tooltip:{enabled:false},
+annotation:{annotations:{co2Value:{
+type:'line',
+xMin:0,
+xMax:0,
+borderColor:'#f8fafc',
+borderWidth:2,
+drawTime:'afterDatasetsDraw'
+}}}
+},
+scales:{
+x:{min:0,max:CO2_GAUGE_MAX,stacked:true,display:false,grid:{display:false}},
+y:{stacked:true,display:false,grid:{display:false}}
+}
+},
+plugins:[co2GaugePointerPlugin]
+});
+}
+
+function updateCO2Gauge(newValue){
+const value=toNum(newValue);
+if(co2GaugeStatus){
+co2GaugeStatus.className='co2-gauge-badge';
+if(value===undefined){
+co2GaugeStatus.textContent='No data';
+}else if(value<=1000){
+co2GaugeStatus.classList.add('harmless');
+co2GaugeStatus.textContent='✓ HARMLESS';
+}else if(value<=2000){
+co2GaugeStatus.classList.add('elevated');
+co2GaugeStatus.textContent='⚠ ELEVATED';
+}else{
+co2GaugeStatus.classList.add('unacceptable');
+co2GaugeStatus.textContent='✖ UNACCEPTABLE';
+}
+}
+if(co2Gauge){
+co2Gauge.$co2Value=value;
+const annotation=co2Gauge.options.plugins.annotation.annotations.co2Value;
+annotation.xMin=value===undefined?0:Math.min(CO2_GAUGE_MAX,Math.max(0,value));
+annotation.xMax=annotation.xMin;
+annotation.display=value!==undefined;
+co2Gauge.update('none');
+}
+}
+
+window.updateCO2Gauge=updateCO2Gauge;
+createCO2Gauge();
+const vocGaugeNeedlePlugin={
+id:'vocGaugeNeedle',
+beforeDatasetsDraw(chart){
+const {ctx,chartArea}=chart;
+const meta=chart.getDatasetMeta(0);
+const arc=meta.data[1];
+if(!arc||!chartArea)return;
+arc.options.backgroundColor=ctx.createLinearGradient(chartArea.left,0,chartArea.right,0);
+arc.options.backgroundColor.addColorStop(0,'#facc15');
+arc.options.backgroundColor.addColorStop(.5,'#f97316');
+arc.options.backgroundColor.addColorStop(1,'#ef4444');
+},
+afterDatasetsDraw(chart){
+const value=Number(chart.$vocValue);
+if(!Number.isFinite(value))return;
+const arc=chart.getDatasetMeta(0).data[0];
+if(!arc)return;
+const props=arc.getProps(['x','y','innerRadius','outerRadius','startAngle'],true);
+const totalSweep=chart.config.options.circumference*Math.PI/180;
+const ratio=Math.min(500,Math.max(0,value))/500;
+const angle=props.startAngle+totalSweep*ratio;
+const tipRadius=props.innerRadius+15.5;
+const baseRadius=props.innerRadius-1;
+const tipX=props.x+Math.cos(angle)*tipRadius;
+const tipY=props.y+Math.sin(angle)*tipRadius;
+const baseX=props.x+Math.cos(angle)*baseRadius;
+const baseY=props.y+Math.sin(angle)*baseRadius;
+const sideRadius=7.5;
+const sideX=Math.cos(angle+Math.PI/2)*sideRadius;
+const sideY=Math.sin(angle+Math.PI/2)*sideRadius;
+const ctx=chart.ctx;
+ctx.save();
+ctx.beginPath();
+ctx.moveTo(tipX,tipY);
+ctx.lineTo(baseX+sideX,baseY+sideY);
+ctx.lineTo(baseX-sideX,baseY-sideY);
+ctx.closePath();
+ctx.fillStyle='#050505';
+ctx.strokeStyle='#f8fafc';
+ctx.lineWidth=3;
+ctx.lineJoin='round';
+ctx.shadowColor='rgba(0,0,0,.35)';
+ctx.shadowBlur=3;
+ctx.fill();
+ctx.stroke();
+ctx.restore();
+}
+};
+
+function createVOCGauge(){
+if(!vocGaugeCanvas||typeof Chart==='undefined')return;
+vocGauge=new Chart(vocGaugeCanvas,{
+type:'doughnut',
+data:{labels:['Normal Baseline','Deterioration'],datasets:[{
+data:[100,400],
+backgroundColor:['#22c55e','#f97316'],
+borderWidth:0,
+spacing:2
+}]},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+rotation:-90,
+circumference:180,
+cutout:'72%',
+plugins:{legend:{display:false},tooltip:{enabled:false}},
+animation:{duration:500}
+},
+plugins:[vocGaugeNeedlePlugin]
+});
+}
+
+function updateVOCGauge(newValue){
+const value=toNum(newValue);
+if(valVoc){
+valVoc.textContent=value===undefined?'--':fmt(value,0);
+}
+if(!statusVoc)return;
+statusVoc.className='voc-status-badge';
+if(value===undefined){
+statusVoc.innerText='--';
+}else if(value<100){
+statusVoc.classList.add('improvement');
+statusVoc.innerText='✓ IMPROVEMENT';
+}else if(value===100){
+statusVoc.classList.add('normal');
+statusVoc.innerText='✓ NORMAL BASELINE';
+}else{
+statusVoc.classList.add('deterioration');
+statusVoc.innerText='⚠ DETERIORATION';
+}
+if(vocGauge){
+vocGauge.$vocValue=value;
+vocGauge.update('none');
+}
+}
+
+window.updateVOCGauge=updateVOCGauge;
+
+createVOCGauge();
+const sensorStatusElements={
+co2:statusCo2,
+voc:statusVoc,
+pm25avg:statusPm25Avg24h
+};
+const sensorStatusCards={co2:'card-co2',voc:'card-voc',pm25avg:'card-pm25-24h'};
+const pm25HistoryNote=document.getElementById('pm25-history-note');
+
 const deviceIndicator=document.getElementById('device-indicator');
 const deviceLastSeen=document.getElementById('device-last-seen');
 const deviceConnBadge=document.getElementById('device-connection-badge');
 const deviceStatusText=document.getElementById('device-status-text');
-const switchBuzzer=document.getElementById('switch-buzzer');
-const textBuzzer=document.getElementById('text-buzzer');
 const notificationButton=document.getElementById('btn-notifications');
 const recContent=document.getElementById('recommendations-content');
 const insightText=document.getElementById('insight-text');
 
-// ============================================================
-// GLOBAL STATE
-// ============================================================
 
 const notificationStates={};
 let previousConnectionState=null;
@@ -103,10 +299,6 @@ let firstReadingHandled=false;
 let latestTelemetry=null;
 let latestPm25Avg24h=null;
 let pm25HistoryReady=false;
-
-// ============================================================
-// NOTIFICATION BUTTON
-// ============================================================
 
 function updateNotificationButton(){
 if(!notificationButton||!('Notification'in window))return;
@@ -122,97 +314,42 @@ notificationButton.innerHTML='<i data-lucide="bell-off"></i><span>Notifications 
 if(window.lucide)lucide.createIcons();
 }
 
-// ============================================================
-// ALERT SETTINGS
-// ============================================================
-
 const ALERT_REMINDER_MS=5*60*1000;
-const ALERT_STATES={good:true,elevated:true,poor:true};
-const ALERT_ON_FIRST_GOOD=false;
-const USE_FIREBASE_RECOMMENDATIONS=false;
-const ALERT_GOOD_SUMMARY='Keep up your normal ventilation.';
+const ALERT_VALUE_INTERVALS={
+co2:100,
+voc:50,
+pm25avg:15
+};
+const ALERT_TONES={normal:true,attention:true,critical:true};
+const ALERT_ON_FIRST_NORMAL=false;
 const alertLastSent={};
-
-// ============================================================
-// ALERT INFORMATION
-// ============================================================
+const alertLastValue={};
 
 const ALERT_INFO={
-co2:{
-name:'CO₂',
-ranges:{
-good:'below 1000 ppm',
-elevated:'1000 to 1499 ppm',
-poor:'1500 ppm or more'
-},
-meaning:{
-good:'within the configured good range',
-elevated:'elevated',
-poor:'high'
-},
-action:{
-good:'Keep ventilating as usual.',
-elevated:'Open a window or turn on ventilation.',
-poor:'Improve ventilation by opening windows or doors when appropriate.'
-}
-},
-voc:{
-name:'VOC Index',
-ranges:{
-good:'below 150',
-elevated:'150 to 249',
-poor:'250 or more'
-},
-meaning:{
-good:'within the configured good range',
-elevated:'elevated',
-poor:'high'
-},
-action:{
-good:'Keep ventilating as usual.',
-elevated:'Avoid sprays, paint and strong cleaners. Let fresh air in.',
-poor:'Reduce potential VOC sources and improve ventilation.'
-}
-},
-pm25avg:{
-name:'24-hour average PM2.5',
-ranges:{
-good:'15 µg/m³ or lower',
-elevated:'above 15 up to 25 µg/m³',
-poor:'above 25 µg/m³'
-},
-meaning:{
-good:'within the configured good range',
-elevated:'above the configured good range',
-poor:'above the configured poor threshold'
-},
-action:{
-good:'Maintain current conditions and continue monitoring.',
-elevated:'Reduce potential sources such as dust, smoke, cooking emissions, or incense.',
-poor:'Reduce or remove nearby particulate sources and improve indoor air conditions.'
-}
-}
+co2:{name:'CO₂'},
+voc:{name:'VOC Index'},
+pm25avg:{name:'24-hour average PM2.5'}
 };
 
-const ALERT_WORDS={good:'good',elevated:'elevated',poor:'poor'};
-
-// ============================================================
-// ALERT ADVICE
-// ============================================================
-
-function getAdvice(metricKey,state){
-if(USE_FIREBASE_RECOMMENDATIONS){
-const rec=(recommendationSettings[metricKey]||{})[state];
-if(rec)return typeof rec==='string'?rec:rec.text;
-}
-return ALERT_INFO[metricKey].action[state];
+function getAdvice(metricKey,status){
+const group=metricKey==='pm25avg'?'pm25':metricKey;
+const recommendationKey=contentStatusKey(metricKey,status);
+const rec=(recommendationSettings[group]||{})[recommendationKey]||
+(recommendationSettings[group]||{})[status.key]||
+(recommendationSettings[group]||{})[status.tone];
+return rec?normalizeRecommendationValue(rec):'';
 }
 
-// ============================================================
-// TOAST NOTIFICATIONS
-// ============================================================
+function notificationBody(metricKey,status,value){
+const info=ALERT_INFO[metricKey];
+const advice=getAdvice(metricKey,status);
+const reading=info.name+' is '+value+'.';
+return advice
+?reading+'\n\nRecommended action:\n'+advice
+:reading;
+}
 
-function showToast(title,body,state='poor'){
+function showToast(title,body,tone='critical'){
 let stack=document.getElementById('toast-stack');
 if(!stack){
 stack=document.createElement('div');
@@ -220,7 +357,7 @@ stack.id='toast-stack';
 document.body.appendChild(stack);
 }
 const toast=document.createElement('div');
-toast.className='toast toast-'+state;
+toast.className='toast toast-'+tone;
 const h=document.createElement('strong');
 const p=document.createElement('p');
 h.textContent=title;
@@ -234,10 +371,6 @@ setTimeout(()=>toast.remove(),300);
 toast.addEventListener('click',close);
 setTimeout(close,9000);
 }
-
-// ============================================================
-// SYSTEM NOTIFICATIONS
-// ============================================================
 
 async function showSystemNotification(title,body,tag){
 if(!('Notification'in window)||Notification.permission!=='granted')return;
@@ -265,15 +398,11 @@ console.warn('Notification failed:',err);
 }
 }
 
-async function sendNotification(title,body,tag='aerocube-alert',state='poor'){
-showToast(title,body,state);
-if(state==='poor'&&navigator.vibrate)navigator.vibrate([200,100,200]);
+async function sendNotification(title,body,tag='aerocube-alert',tone='critical'){
+showToast(title,body,tone);
+if(tone==='critical'&&navigator.vibrate)navigator.vibrate([200,100,200]);
 await showSystemNotification(title,body,tag);
 }
-
-// ============================================================
-// ENABLE NOTIFICATIONS
-// ============================================================
 
 notificationButton?.addEventListener('click',async()=>{
 if(!('Notification'in window)){
@@ -285,9 +414,9 @@ updateNotificationButton();
 if(Notification.permission==='granted'){
 sendNotification(
 'AeroCube notifications are on',
-'You will be alerted when CO₂, VOC Index or the 24-hour average PM2.5 changes between the configured ranges.',
+'You will be alerted when the firmware reports changes to CO₂, VOC Index or 24-hour PM2.5 statuses.',
 'aerocube-test',
-'good'
+'normal'
 );
 }else if(Notification.permission==='denied'){
 window.alert('Notifications are blocked. Allow them in your browser or site settings, then reload the page.');
@@ -296,72 +425,57 @@ window.alert('Notifications are blocked. Allow them in your browser or site sett
 
 updateNotificationButton();
 
-// ============================================================
-// SENSOR THRESHOLDS
-// ============================================================
-
-const THRESHOLDS={
-co2:{elevated:1000,poor:1500},
-voc:{elevated:150,poor:250},
-pm25avg:{elevated:15,poor:25}
-};
-
-// ============================================================
-// CARD AND STATUS HELPERS
-// ============================================================
-
-function setCardVisual(cardId,state){
-const card=document.getElementById(cardId);
-if(!card)return;
-card.classList.remove('border-good','border-elevated','border-poor');
-if(state)card.classList.add('border-'+state);
-}
-
 function setStatusPill(element,state,label){
 if(!element)return;
 element.className='card-status '+(state||'');
 element.innerText=label;
 }
 
-// ============================================================
-// CO₂ STATUS
-// ============================================================
-
-function getCo2Status(co2){
-const value=Number(co2);
-if(!Number.isFinite(value))return{state:null,label:'NO DATA'};
-if(value>=THRESHOLDS.co2.poor)return{state:'poor',label:'POOR'};
-if(value>=THRESHOLDS.co2.elevated)return{state:'elevated',label:'ELEVATED'};
-return{state:'good',label:'GOOD'};
+function setCardVisual(cardId,state){
+const card=document.getElementById(cardId);
+if(!card)return;
+card.classList.remove('border-normal','border-attention','border-critical');
+if(state)card.classList.add('border-'+state);
 }
 
-// ============================================================
-// VOC STATUS
-// ============================================================
-
-function getVocStatus(voc){
-const value=Number(voc);
-if(!Number.isFinite(value))return{state:null,label:'NO DATA'};
-if(value>=THRESHOLDS.voc.poor)return{state:'poor',label:'POOR'};
-if(value>=THRESHOLDS.voc.elevated)return{state:'elevated',label:'ELEVATED'};
-return{state:'good',label:'GOOD'};
+function renderReading(element,value,unit='',digits=1){
+if(!element)return;
+const number=toNum(value);
+const suffix=unit?' <span>'+unit+'</span>':'';
+element.innerHTML=(number===undefined?'--':fmt(number,digits))+suffix;
 }
 
-// ============================================================
-// PM2.5 24-HOUR STATUS
-// ============================================================
-
-function getPm25AverageStatus(value){
-const reading=Number(value);
-if(!Number.isFinite(reading))return{state:null,label:'NO DATA'};
-if(reading>THRESHOLDS.pm25avg.poor)return{state:'poor',label:'POOR'};
-if(reading>THRESHOLDS.pm25avg.elevated)return{state:'elevated',label:'ELEVATED'};
-return{state:'good',label:'GOOD'};
+function renderTelemetryReadings(data){
+renderReading(valCo2,data.co2,'ppm',0);
+updateCO2Gauge(data.co2);
+updateVOCGauge(data.VOCidx);
+renderReading(valTemp,data.temp,'°C');
+renderReading(valHumidity,data.humidity,'%');
+renderReading(valPm25Current,data.pm?.pm2p5,'',0);
+renderReading(valPm1,data.pm?.pm1p0,'µg/m³');
+renderReading(valPm25,data.pm?.pm2p5,'µg/m³');
+renderReading(valPm4,data.pm?.pm4p0,'µg/m³');
+renderReading(valPm10,data.pm?.pm10p0,'µg/m³');
 }
 
-// ============================================================
-// DEVICE ONLINE STATUS
-// ============================================================
+function updateSensorStatuses(data){
+Object.entries(sensorStatusElements).forEach(([metric,element])=>{
+if(metric==='voc'){
+updateVOCGauge(data.VOCidx);
+const vocValue=toNum(data.VOCidx);
+if(sensorStatusCards[metric])setCardVisual(
+sensorStatusCards[metric],
+vocValue===undefined?null:(vocValue<=100?'normal':'attention')
+);
+return;
+}
+const status=metric==='pm25avg'
+?getPm25AverageStatus()
+:getFirmwareStatus(data,metric);
+setStatusPill(element,status.tone,status.label);
+if(sensorStatusCards[metric])setCardVisual(sensorStatusCards[metric],status.tone);
+});
+}
 
 function checkDeviceOnline(lastSeen){
 if(!lastSeen)return false;
@@ -377,33 +491,34 @@ if(diff<86400)return Math.floor(diff/3600)+' hours ago';
 return Math.floor(diff/86400)+' days ago';
 }
 
-// ============================================================
-// CLEAR STALE SENSOR DATA
-// ============================================================
-
 function clearStaleSensorData(){
 firstReadingHandled=false;
-notificationStates.co2=null;
-notificationStates.voc=null;
-valCo2.innerHTML='-- <span>ppm</span>';
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valVoc.innerText='--';
-valPm10.innerHTML='-- <span>µg/m³</span>';
-valTemp.innerHTML='-- <span>°C</span>';
-valHumidity.innerHTML='-- <span>%</span>';
-valPm1.innerHTML='-- <span>µg/m³</span>';
-valPm4.innerHTML='-- <span>µg/m³</span>';
-setStatusPill(statusCo2,'','No data');
-setStatusPill(statusVoc,'','No data');
-setCardVisual('card-co2',null);
-setCardVisual('card-voc',null);
+Object.keys(notificationStates).forEach(key=>{notificationStates[key]=null;});
+Object.keys(alertLastValue).forEach(key=>{delete alertLastValue[key];});
+renderTelemetryReadings({});
+renderReading(valPm25Avg24h,undefined,'µg/m³');
+Object.entries(sensorStatusElements).forEach(([metric,element])=>{
+if(metric==='voc')updateVOCGauge(undefined);
+else setStatusPill(element,null,'No data');
+});
+Object.values(sensorStatusCards).forEach(cardId=>setCardVisual(cardId,null));
+if(pm25HistoryNote)pm25HistoryNote.textContent='Waiting for telemetry and PM2.5 history.';
+if(!latestTelemetry){
 if(insightText)insightText.innerHTML='<div>Waiting for telemetry data...</div>';
 if(recContent)recContent.innerHTML='<div>Waiting for telemetry data...</div>';
 }
+}
 
-// ============================================================
-// DEVICE CONNECTION STATUS
-// ============================================================
+function getPm25AverageStatus(){
+if(!pm25HistoryReady){
+return describeFirmwareStatus('pm25avg',null,'Collecting Data');
+}
+const withinGuideline=latestPm25Avg24h<=15;
+return describeFirmwareStatus(
+'pm25avg',
+withinGuideline?'Within WHO 24-hour AQG':'Above WHO 24-hour AQG'
+);
+}
 
 function updateDeviceConnectionStatus(lastSeen){
 const online=checkDeviceOnline(lastSeen);
@@ -416,99 +531,75 @@ sendNotification(
 online?'AeroCube connected':'AeroCube disconnected',
 online?'Live sensor data has resumed.':'No sensor data has been received for over 60 seconds.',
 'aerocube-connection',
-online?'good':'poor'
+online?'normal':'critical'
 );
 }
 previousConnectionState=online;
 if(!online)clearStaleSensorData();
 }
 
-// ============================================================
-// SENSOR STATE NOTIFICATIONS
-// ============================================================
-
-function notifyMetricState(metricKey,state,value){
+function notifyMetricState(metricKey,status,value){
 const info=ALERT_INFO[metricKey];
-if(!info||!state)return;
-const now=Date.now();
+if(!info)return;
+if(metricKey==='pm25avg'&&!pm25HistoryReady)return;
 const prev=notificationStates[metricKey];
-notificationStates[metricKey]=state;
-if(prev===state){
-if(state==='poor'&&ALERT_STATES.poor&&now-(alertLastSent[metricKey]||0)>=ALERT_REMINDER_MS){
+const numericValue=Number.parseFloat(String(value));
+notificationStates[metricKey]=status.raw?status:null;
+if(!status.tone)return;
+const now=Date.now();
+if(prev?.label===status.label){
+const valueInterval=ALERT_VALUE_INTERVALS[metricKey];
+const valueChanged=Number.isFinite(numericValue)&&
+Number.isFinite(alertLastValue[metricKey])&&
+Math.abs(numericValue-alertLastValue[metricKey])>=valueInterval;
+const criticalReminder=status.tone==='critical'&&ALERT_TONES.critical&&
+now-(alertLastSent[metricKey]||0)>=ALERT_REMINDER_MS;
+if(valueChanged||criticalReminder){
 alertLastSent[metricKey]=now;
+if(Number.isFinite(numericValue))alertLastValue[metricKey]=numericValue;
 sendNotification(
-info.name+' is still poor',
-info.name+' is '+value+'.\n'+getAdvice(metricKey,'poor'),
-'aerocube-'+metricKey,
-'poor'
+info.name+': '+status.label,
+notificationBody(metricKey,status,value),
+'aerocube-'+metricKey,status.tone
 );
 }
 return;
 }
-if(!prev&&state==='good'&&!ALERT_ON_FIRST_GOOD)return;
-if(!ALERT_STATES[state])return;
+if(Number.isFinite(numericValue))alertLastValue[metricKey]=numericValue;
+if(!prev&&status.tone==='normal'&&!ALERT_ON_FIRST_NORMAL)return;
+if(!ALERT_TONES[status.tone])return;
 alertLastSent[metricKey]=now;
-const range=info.ranges[state];
-const word=ALERT_WORDS[state];
-const advice=getAdvice(metricKey,state);
-const todo=state==='good'?advice:'What to do: '+advice;
-let title;
-let body;
-if(state==='elevated'&&prev==='poor'){
-title=info.name+' is getting better';
-body=info.name+' is now '+value+', down from poor.\nIt is still elevated ('+range+').\n'+todo;
-}else{
-title=info.name+' is '+word;
-body=info.name+' is now '+value+'.\n'+word.charAt(0).toUpperCase()+word.slice(1)+' means '+range+'.\n'+todo;
+sendNotification(
+info.name+': '+status.label,
+notificationBody(metricKey,status,value),
+'aerocube-'+metricKey,status.tone
+);
 }
-sendNotification(title,body,'aerocube-'+metricKey,state);
-}
-
-// ============================================================
-// FIRST READING SUMMARY
-// ============================================================
 
 function announceFirstReading(){
 if(firstReadingHandled)return;
-const states=['co2','voc'].map(key=>notificationStates[key]).filter(Boolean);
-if(states.length<2)return;
+const statuses=['co2','voc'].map(key=>notificationStates[key]);
+if(statuses.some(status=>!status?.tone))return;
 firstReadingHandled=true;
-if(!ALERT_STATES.good)return;
-if(states.every(state=>state==='good')){
+if(!ALERT_TONES.normal||!statuses.every(status=>status.tone==='normal'))return;
 sendNotification(
-'Current CO₂ and VOC readings are good',
-'CO₂ and VOC Index are currently in the configured good ranges.\n'+ALERT_GOOD_SUMMARY,
-'aerocube-summary',
-'good'
+'Current firmware sensor statuses',
+'CO₂: '+statuses[0].label+'. VOC Index: '+statuses[1].label+'.',
+'aerocube-summary','normal'
 );
 }
-}
 
-// ============================================================
-// MANUAL SENSOR TEST
-// ============================================================
-
-window.aeroTest=function(metric,value){
-const getters={
-co2:getCo2Status,
-voc:getVocStatus,
-pm25avg:getPm25AverageStatus
-};
-if(!getters[metric]||typeof value!=='number'){
-console.log("Use: aeroTest('co2' | 'voc' | 'pm25avg', number)");
+window.aeroTest=function(metric,status,value){
+if(!ALERT_INFO[metric]||typeof status!=='string'){
+console.log("Use: aeroTest('co2' | 'voc' | 'pm25avg', firmwareStatus, reading)");
 return;
 }
-const status=getters[metric](value);
-const displayValue=metric==='co2'?value+' ppm':metric==='pm25avg'?value+' µg/m³':value;
-notifyMetricState(metric,status.state,displayValue);
-console.log(metric,value,'->',status.state);
+const result=describeFirmwareStatus(metric,status);
+notifyMetricState(metric,result,value??'--');
+console.log(metric,result.label,value);
 };
 
-// ============================================================
-// FORMATTING AND TIMESTAMP HELPERS
-// ============================================================
-
-const fmt=(value,digits=1)=>typeof value==='number'?Number(value.toFixed(digits)):value;
+const fmt=(v,d=1)=>typeof v==='number'?Number(v.toFixed(d)):v;
 const PUSH_CHARS='-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 
 function getTimestampFromPushId(pushId){
@@ -529,25 +620,22 @@ if(Number.isNaN(value)||value<=0)return 0;
 return value<1e12?value*1000:value;
 }
 
-// ============================================================
-// TREND SETTINGS
-// ============================================================
-
 const TREND_WINDOW_MIN=15;
 const KEEP_MS=60*60*1000;
 const PM25_WINDOW_MS=24*60*60*1000;
-const PM25_MAX_GAP_MS=30*60*1000;
-const TREND_MIN_CHANGE={co2:50,voc:10};
+
+const TREND_MIN_CHANGE={
+co2:50,
+voc:10,
+pm25:5
+};
+
 let recentReadings=[];
 
-// ============================================================
-// SENSOR DATA HELPERS
-// ============================================================
-
-function toNum(value){
-if(value===undefined||value===null||value==='')return undefined;
-const number=Number(value);
-return Number.isFinite(number)?number:undefined;
+function toNum(v){
+if(v===undefined||v===null||v==='')return undefined;
+const n=Number(v);
+return Number.isFinite(n)?n:undefined;
 }
 
 function recordReading(data){
@@ -557,55 +645,52 @@ if(last&&now-last.t<10000)return;
 recentReadings.push({
 t:now,
 co2:toNum(data.co2),
-voc:toNum(data.VOCidx)
+voc:toNum(data.VOCidx),
+pm25:toNum(data.pm?.pm2p5)
 });
-recentReadings=recentReadings.filter(reading=>reading.t>=now-KEEP_MS);
+recentReadings=recentReadings.filter(r=>r.t>=now-KEEP_MS);
 }
 
 function seedRecentReadings(seed){
 if(!seed.length)return;
 seed.sort((a,b)=>a.t-b.t);
 const lastSeed=seed[seed.length-1].t;
-recentReadings=seed.concat(recentReadings.filter(reading=>reading.t>lastSeed)).filter(reading=>reading.t>=Date.now()-KEEP_MS);
+recentReadings=seed.concat(recentReadings.filter(r=>r.t>lastSeed)).filter(r=>r.t>=Date.now()-KEEP_MS);
 }
 
-function seriesOf(key,milliseconds){
-const cutoff=Date.now()-milliseconds;
-return recentReadings.filter(reading=>reading.t>=cutoff&&typeof reading[key]==='number');
+function seriesOf(key,ms){
+const cut=Date.now()-ms;
+return recentReadings.filter(r=>r.t>=cut&&typeof r[key]==='number');
 }
 
 function trendOf(key){
-const points=seriesOf(key,TREND_WINDOW_MIN*60000);
-if(points.length<4)return null;
-const spanMin=(points[points.length-1].t-points[0].t)/60000;
+const pts=seriesOf(key,TREND_WINDOW_MIN*60000);
+if(pts.length<4)return null;
+const spanMin=(pts[pts.length-1].t-pts[0].t)/60000;
 if(spanMin<3)return null;
-const t0=points[0].t;
-const xs=points.map(point=>(point.t-t0)/60000);
-const ys=points.map(point=>point[key]);
+const t0=pts[0].t;
+const xs=pts.map(p=>(p.t-t0)/60000);
+const ys=pts.map(p=>p[key]);
 const n=xs.length;
 const mx=xs.reduce((a,b)=>a+b)/n;
 const my=ys.reduce((a,b)=>a+b)/n;
-const den=xs.reduce((sum,x)=>sum+(x-mx)**2,0);
-const slope=den?xs.reduce((sum,x,i)=>sum+(x-mx)*(ys[i]-my),0)/den:0;
+const den=xs.reduce((a,x)=>a+(x-mx)**2,0);
+const slope=den?xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/den:0;
 const change=slope*TREND_WINDOW_MIN;
 const dir=Math.abs(change)<TREND_MIN_CHANGE[key]?'steady':change>0?'up':'down';
 return{slope,change,dir};
 }
 
 function hourStats(key){
-const points=seriesOf(key,KEEP_MS);
-if(points.length<5||points[points.length-1].t-points[0].t<5*60000)return null;
-const values=points.map(point=>point[key]);
+const pts=seriesOf(key,KEEP_MS);
+if(pts.length<5||pts[pts.length-1].t-pts[0].t<5*60000)return null;
+const vals=pts.map(p=>p[key]);
 return{
-avg:values.reduce((a,b)=>a+b)/values.length,
-max:Math.max(...values),
-min:Math.min(...values)
+avg:vals.reduce((a,b)=>a+b)/vals.length,
+max:Math.max(...vals),
+min:Math.min(...vals)
 };
 }
-
-// ============================================================
-// PM2.5 SESSION
-// ============================================================
 
 function getCurrentPm25Session(history,now){
 const readings=[];
@@ -621,41 +706,18 @@ if(!Number.isFinite(value))continue;
 readings.push({timestamp,value,log});
 }
 readings.sort((a,b)=>a.timestamp-b.timestamp);
-if(!readings.length)return[];
-let session=[readings[0]];
-for(let i=1;i<readings.length;i++){
-if(readings[i].timestamp-readings[i-1].timestamp>PM25_MAX_GAP_MS){
-session=[readings[i]];
-}else{
-session.push(readings[i]);
+return readings;
 }
-}
-if(now-session[session.length-1].timestamp>PM25_MAX_GAP_MS)return[];
-return session;
-}
-
-// ============================================================
-// PM2.5 24-HOUR AVERAGE
-// ============================================================
 
 async function updatePm25Average24h(){
-if(!valPm25Avg24h||!statusPm25Avg24h)return;
+if(!valPm25Avg24h)return;
+let message='Waiting for 24-hour PM2.5 history.';
+latestPm25Avg24h=null;
+pm25HistoryReady=false;
 try{
 const snapshot=await get(ref(db,aeroCubePath+'/history'));
 const now=Date.now();
-if(!snapshot.exists()){
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valPm25Avg24h.innerHTML='0 <span>µg/m³</span>';
-setStatusPill(statusPm25Avg24h,'','Collecting PM2.5: 0 / 24 hours');
-setCardVisual('card-pm25-24h',null);
-if(latestTelemetry){
-updateInsights(latestTelemetry);
-updateRecommendations(latestTelemetry);
-}
-return;
-}
+if(snapshot.exists()){
 const history=snapshot.val();
 const seed=[];
 for(const key in history){
@@ -664,312 +726,248 @@ let timestamp=normalizeTimestamp(log.timestamp||log.time||log.created_at);
 if(!timestamp&&key.startsWith('-'))timestamp=getTimestampFromPushId(key);
 if(!timestamp||timestamp>now)continue;
 if(timestamp>=now-KEEP_MS){
-seed.push({
-t:timestamp,
-co2:toNum(log.co2),
-voc:toNum(log.VOCidx)
-});
+seed.push({t:timestamp,co2:toNum(log.co2),voc:toNum(log.VOCidx),pm25:toNum(log.pm?.pm2p5)});
 }
 }
 seedRecentReadings(seed);
 const session=getCurrentPm25Session(history,now);
-if(!session.length){
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valPm25Avg24h.innerHTML='0 <span>µg/m³</span>';
-setStatusPill(statusPm25Avg24h,'','Collecting PM2.5: 0 / 24 hours');
-setCardVisual('card-pm25-24h',null);
-if(latestTelemetry){
-updateInsights(latestTelemetry);
-updateRecommendations(latestTelemetry);
+const readings=session.filter(item=>item.timestamp>=now-PM25_WINDOW_MS);
+const latestValue=toNum(latestTelemetry?.pm?.pm2p5);
+const latestTimestamp=normalizeTimestamp(latestTelemetry?.timestamp)||now;
+if(latestValue!==undefined&&latestTimestamp>=now-PM25_WINDOW_MS&&
+!readings.some(item=>item.timestamp===latestTimestamp)){
+readings.push({timestamp:latestTimestamp,value:latestValue});
 }
-return;
+readings.sort((a,b)=>a.timestamp-b.timestamp);
+if(readings.length){
+latestPm25Avg24h=readings.reduce((sum,item)=>sum+item.value,0)/readings.length;
+const collectedMs=readings[readings.length-1].timestamp-readings[0].timestamp;
+pm25HistoryReady=collectedMs>=PM25_WINDOW_MS;
+message=collectedMs>=PM25_WINDOW_MS
+?'Rolling 24-hour average calculated from recorded PM2.5 readings.'
+:'Rolling PM2.5 average calculated from '+fmt(collectedMs/(60*60*1000))+' hours of available readings.';
 }
-const sessionStart=session[0].timestamp;
-const collectedMs=now-sessionStart;
-const hasFull24Hours=collectedMs>=PM25_WINDOW_MS;
-if(!hasFull24Hours){
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valPm25Avg24h.innerHTML='0 <span>µg/m³</span>';
-const collectedHours=Math.min(24,Math.max(0,collectedMs/(60*60*1000)));
-setStatusPill(statusPm25Avg24h,'','Collecting PM2.5: '+fmt(collectedHours,1)+' / 24 hours');
-setCardVisual('card-pm25-24h',null);
-if(latestTelemetry){
-updateInsights(latestTelemetry);
-updateRecommendations(latestTelemetry);
-}
-return;
-}
-const cutoff=now-PM25_WINDOW_MS;
-const readings=session.filter(item=>item.timestamp>=cutoff&&item.timestamp<=now);
-if(!readings.length){
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valPm25Avg24h.innerHTML='0 <span>µg/m³</span>';
-setStatusPill(statusPm25Avg24h,'','Collecting PM2.5: 0 / 24 hours');
-setCardVisual('card-pm25-24h',null);
-return;
-}
-const average=readings.reduce((sum,item)=>sum+item.value,0)/readings.length;
-latestPm25Avg24h=average;
-pm25HistoryReady=true;
-const status=getPm25AverageStatus(average);
-valPm25Avg24h.innerHTML=fmt(average)+' <span>µg/m³</span>';
-if(latestTelemetry?.pm?.pm2p5!==undefined){
-valPm25.innerHTML=fmt(Number(latestTelemetry.pm.pm2p5))+' <span>µg/m³</span>';
-}
-setStatusPill(statusPm25Avg24h,status.state,status.label);
-setCardVisual('card-pm25-24h',status.state);
-notifyMetricState('pm25avg',status.state,fmt(average)+' µg/m³');
-if(latestTelemetry){
-updateInsights(latestTelemetry);
-updateRecommendations(latestTelemetry);
 }
 }catch(error){
 console.error('Unable to calculate 24-hour PM2.5 average:',error);
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
-valPm25.innerHTML='0 <span>µg/m³</span>';
-valPm25Avg24h.innerHTML='0 <span>µg/m³</span>';
-setStatusPill(statusPm25Avg24h,'','Unable to load history');
-setCardVisual('card-pm25-24h',null);
+message='Unable to load PM2.5 history.';
+}
+renderReading(valPm25Avg24h,latestPm25Avg24h,'µg/m³');
+if(pm25HistoryNote)pm25HistoryNote.textContent=message;
+if(latestTelemetry&&previousConnectionState!==false){
+updateSensorStatuses(latestTelemetry);
+updateInsights(latestTelemetry);
+updateRecommendations(latestTelemetry);
 }
 }
-
-// ============================================================
-// INSIGHT TEXT
-// ============================================================
-
-const STATE_LABEL={good:'Good',elevated:'Elevated',poor:'High'};
 
 const INSIGHT_COPY={
 co2:{
-label:'Air Freshness (CO₂)',
-name:'CO₂',
-unit:' ppm',
-digits:0,
-meaning:{
-good:'the air is fresh',
-elevated:'the air is getting stuffy',
-poor:'the air is very stuffy, which can cause sleepiness and headaches'
-}
+label:'CO₂',name:'CO₂',unit:' ppm',digits:0
 },
 voc:{
-label:'Odors & Chemicals (VOC)',
-name:'VOC Index',
-unit:'',
-digits:0,
-meaning:{
-good:'there are no strong fumes or smells',
-elevated:'fumes or strong smells are building up',
-poor:'there are a lot of fumes in the air, which can irritate your eyes, nose and throat'
-}
+label:'VOC Index',name:'VOC Index',unit:'',digits:0
 },
 pm25avg:{
-label:'24-Hour PM2.5',
-meaning:{
-good:'there has been little dust or smoke over the last day',
-elevated:'there was more dust or smoke than recommended over the last day',
-poor:'there was a lot of dust or smoke in the air over the last day'
-}
+label:'24-hour PM2.5',name:'24-hour PM2.5 average',unit:' µg/m³',digits:1
 }
 };
 
-// ============================================================
-// INSIGHT STYLES
-// ============================================================
-
 function ensureInsightStyles(){
 if(document.getElementById('insight-level-style'))return;
-const style=document.createElement('style');
-style.id='insight-level-style';
-style.textContent=
+const st=document.createElement('style');
+st.id='insight-level-style';
+st.textContent=
 '.ins-s{font-weight:700}'+
-'.ins-s.good{color:var(--accent-green,#10b981)}'+
-'.ins-s.elevated{color:var(--accent-yellow,#FACC15)}'+
-'.ins-s.poor{color:var(--accent-red,#ef4444)}';
-document.head.appendChild(style);
+'.ins-s.normal{color:var(--accent-green,#10b981)}'+
+'.ins-s.attention{color:var(--accent-yellow,#FACC15)}'+
+'.ins-s.critical{color:var(--accent-red,#ef4444)}';
+document.head.appendChild(st);
 }
 
 const statusTag=(state,text)=>'<span class="ins-s '+state+'">'+text+'</span>';
-const insightLine=(label,tag,body)=>'<div><strong>'+label+':</strong> '+tag+' — '+body+'</div>';
-
-// ============================================================
-// TREND SENTENCES
-// ============================================================
-
-function trendSentence(key,unit,digits,value,state){
-const trend=trendOf(key);
-if(!trend)return'';
-if(trend.dir==='steady')return'It has been steady for the last '+TREND_WINDOW_MIN+' minutes.';
-const up=trend.dir==='up';
-const amount=(trend.change>0?'+':'')+fmt(trend.change,digits)+unit;
-let sentence='It is '+(up?'rising':'falling')+' ('+amount+' in '+TREND_WINDOW_MIN+' minutes)';
-const threshold=THRESHOLDS[key];
-if(threshold&&up&&state!=='poor'){
-const target=state==='good'?threshold.elevated:threshold.poor;
-const mins=(target-value)/trend.slope;
-if(mins>0&&mins<=90){
-sentence+=' and could reach the '+(state==='good'?'elevated':'high')+' level ('+target+unit+') in about '+Math.max(1,Math.round(mins))+' minutes';
-}
-}else if(threshold&&!up&&state==='elevated'){
-const mins=(value-(threshold.elevated-1))/Math.abs(trend.slope);
-if(mins>0&&mins<=90){
-sentence+=' and should be back in the good range in about '+Math.max(1,Math.round(mins))+' minutes';
-}
-}
-return sentence+'.';
+function splitSource(text){
+const match=String(text||'').match(/^(.*?)(?:\s+)?source:\s*(.+)$/i);
+return match
+?{body:match[1].trim(),source:match[2].trim()}
+:{body:String(text||''),source:''};
 }
 
-function pastHourSentence(key,unit,digits){
-const stats=hourStats(key);
-if(!stats)return'';
-return'Past hour: average '+fmt(stats.avg,digits)+unit+', highest '+fmt(stats.max,digits)+unit+'.';
+const contentLine=(label,body)=>{
+const content=splitSource(body);
+return'<div class="content-item">'+
+'<div class="content-heading">'+label+':</div>'+
+'<p>'+escapeHtml(content.body)+'</p>'+
+(content.source?'<small class="content-source">source: '+escapeHtml(content.source)+'</small>':'')+
+'</div>';
+};
+
+const insightLine=(label,tag,reading,meaning)=>{
+const scientific=splitSource(meaning);
+return contentLine(escapeHtml(label)+' — '+tag,[reading,scientific.body].filter(Boolean).join(' ')+
+(scientific.source?' source: '+scientific.source:''));
+};
+
+const SCIENTIFIC_CONTENT_PATHS={
+insight:'/Infos/insight',
+recommendations:'/Infos/actionableRecommendation'
+};
+
+const scientificContent={
+insight:{co2:{},voc:{},pm25:{}},
+recommendations:{co2:{},voc:{},pm25:{}}
+};
+
+const contentMetricAliases={
+co2:['co2'],
+voc:['voc','vocIdx'],
+pm25:['pm25','pm','pm25avg','pm2p5_WHO24hAQG']
+};
+
+const contentStatusAliases={
+harmless:['normal','harmless'],
+elevated:['elevated'],
+unacceptable:['unacceptable'],
+improvement:['improvement'],
+normal_baseline:['baseline','normalBaseline','normal_baseline'],
+deterioration:['deterioration'],
+within_who_24_hour_aqg:['within_WHO24hAQG','within_who_24_hour_aqg'],
+above_who_24_hour_aqg:['above_WHO24hAQG','above_who_24_hour_aqg']
+};
+
+function scientificContentValue(value){
+if(typeof value==='string')return value;
+if(!value||typeof value!=='object')return undefined;
+const text=value.text||value.description||value.recommendation||value.insight;
+if(typeof text!=='string')return undefined;
+const source=value.source||value.sources||value.reference;
+return typeof source==='string'&&source.trim()
+?text+' Source: '+source
+:text;
 }
 
-const joinSentences=(...parts)=>parts.filter(Boolean).join(' ');
+function canonicalContentStatus(key){
+const normalized=key.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase();
+for(const [state,aliases] of Object.entries(contentStatusAliases)){
+if(aliases.some(alias=>alias.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase()===normalized))return state;
+}
+return undefined;
+}
 
-// ============================================================
-// DYNAMIC INSIGHTS
-// ============================================================
+function canonicalContentKey(metric,key){
+const normalized=key.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase();
+const suffix=normalized.replace(/^.*?_/, '');
+if(metric==='co2'){
+if(suffix==='normal'||suffix==='harmless')return'harmless';
+if(suffix==='elevated')return'elevated';
+if(suffix==='unacceptable')return'unacceptable';
+}
+if(metric==='voc'){
+if(suffix==='improvement')return'improvement';
+if(suffix==='baseline'||suffix==='normal_baseline')return'normal_baseline';
+if(suffix==='deterioration')return'deterioration';
+}
+if(metric==='pm25'){
+if(suffix==='within_who24h_aqg'||suffix==='within_who_24_hour_aqg')return'within_who_24_hour_aqg';
+if(suffix==='above_who24h_aqg'||suffix==='above_who_24_hour_aqg')return'above_who_24_hour_aqg';
+}
+return undefined;
+}
+
+function contentStatusKey(metric,status){
+if(metric==='co2'&&status.key==='normal')return'harmless';
+if(metric==='voc'&&status.key==='baseline')return'normal_baseline';
+if(metric==='pm25avg'&&status.key==='within_who_24_hour_aqg')return'within_who_24_hour_aqg';
+if(metric==='pm25avg'&&status.key==='above_who_24_hour_aqg')return'above_who_24_hour_aqg';
+return status.key;
+}
+
+function normalizeScientificContent(remote){
+const normalized={co2:{},voc:{},pm25:{}};
+if(!remote||typeof remote!=='object')return normalized;
+
+Object.entries(contentMetricAliases).forEach(([metric,aliases])=>{
+const groups=aliases.map(alias=>remote[alias]).filter(group=>group&&typeof group==='object');
+Object.entries(remote).forEach(([key,value])=>{
+if(aliases.some(alias=>key.toLowerCase().startsWith(alias.toLowerCase()+'_'))){
+groups.push({[key]:value});
+}
+});
+groups.forEach(group=>{
+Object.entries(group).forEach(([key,value])=>{
+const exactStatus=canonicalContentKey(metric,key);
+const status=canonicalContentStatus(key.replace(/^.*?_/,''))||canonicalContentStatus(key);
+const text=scientificContentValue(value);
+if(text){
+if(exactStatus)normalized[metric][exactStatus]=text;
+if(status&&!normalized[metric][status])normalized[metric][status]=text;
+}
+});
+});
+});
+return normalized;
+}
 
 function updateInsights(data){
 if(!data||!insightText)return;
 ensureInsightStyles();
-const states={};
 const lines=[];
 [
-['co2',data.co2,getCo2Status],
-['voc',data.VOCidx,getVocStatus]
-].forEach(([key,value,getStatus])=>{
-if(value===undefined)return;
+['co2',toNum(data.co2)],
+['voc',toNum(data.VOCidx)],
+['pm25avg',latestPm25Avg24h]
+].forEach(([key,value])=>{
 const copy=INSIGHT_COPY[key];
-const status=getStatus(value);
-if(!status.state)return;
-states[key]=status.state;
+if(key==='pm25avg'&&!pm25HistoryReady)return;
+const status=key==='pm25avg'
+?getPm25AverageStatus()
+:getFirmwareStatus(data,key);
+const hasValue=typeof value==='number';
+if(!hasValue&&!status.raw&&key!=='pm25avg')return;
+const reading='';
+const contentGroup=key==='pm25avg'?'pm25':key;
+const firebaseStatusKey=contentStatusKey(key,status);
+const meaning=scientificContent.insight[contentGroup][firebaseStatusKey]||
+scientificContent.insight[contentGroup][status.key]||'';
 lines.push(insightLine(
-copy.label,
-statusTag(status.state,STATE_LABEL[status.state]),
-joinSentences(
-copy.name+' is '+fmt(Number(value),copy.digits)+copy.unit+', so '+copy.meaning[status.state]+'.',
-trendSentence(key,copy.unit,copy.digits,Number(value),status.state),
-pastHourSentence(key,copy.unit,copy.digits),
-status.state==='good'?'':'What to do: '+ALERT_INFO[key].action[status.state]
-)
+copy.label,statusTag(status.tone||'',escapeHtml(status.label)),
+escapeHtml(reading),
+meaning
 ));
 });
-if(pm25HistoryReady&&data.pm?.pm2p5!==undefined){
-const currentPm25=Number(data.pm.pm2p5);
-lines.push('<div><strong>Current PM2.5:</strong> '+fmt(currentPm25)+' µg/m³</div>');
+if(!pm25HistoryReady){
+lines.push('<div class="content-item"><strong>WHO PM2.5 24-hour AQG:</strong><p>Collecting PM2.5 data. The insights will appear after a full 24 hours of history.</p></div>');
 }
-const pm=INSIGHT_COPY.pm25avg;
-if(pm25HistoryReady&&latestPm25Avg24h!==null){
-const status=getPm25AverageStatus(latestPm25Avg24h);
-states.pm25avg=status.state;
-const now=data.pm?.pm2p5!==undefined?' (right now: '+fmt(Number(data.pm.pm2p5))+' µg/m³)':'';
-lines.push(insightLine(
-pm.label,
-statusTag(status.state,STATE_LABEL[status.state]),
-joinSentences(
-'The 24-hour average is '+fmt(latestPm25Avg24h)+' µg/m³'+now+', so '+pm.meaning[status.state]+'.',
-status.state==='good'?'':'What to do: '+ALERT_INFO.pm25avg.action[status.state]
-)
-));
-}else{
-lines.push('<div><strong>'+pm.label+':</strong> AeroCube is collecting enough historical data to calculate the full 24-hour average.</div>');
-}
-if(states.co2&&states.voc&&states.co2!=='good'&&states.voc!=='good'){
-lines.push('<div><strong>Note:</strong> CO₂ and VOC are both up. This usually means a closed room with people or products in use. Fresh air helps both.</div>');
-}
-const names={co2:'CO₂',voc:'VOC',pm25avg:'24-hour PM2.5'};
-const list=state=>Object.keys(states).filter(key=>states[key]===state).map(key=>names[key]);
-const poor=list('poor');
-const elevated=list('elevated');
-let overall='';
-if(poor.length){
-overall=statusTag('poor','Air needs attention: '+poor.join(' and ')+(poor.length>1?' are':' is')+' high.');
-}else if(elevated.length){
-overall=statusTag('elevated','Air is okay, but '+elevated.join(' and ')+(elevated.length>1?' are':' is')+' elevated.');
-}else if(Object.keys(states).length){
-overall=statusTag('good','Your air looks healthy right now.');
-}
-if(overall)lines.unshift('<div><strong>Overall:</strong> '+overall+'</div>');
 insightText.innerHTML=lines.length?lines.join(''):'<div>Waiting for telemetry data...</div>';
 }
 
-// ============================================================
-// LIVE TELEMETRY
-// ============================================================
-
 onValue(ref(db,aeroCubePath+'/telemetry'),snapshot=>{
 const data=snapshot.val();
-if(!data)return;
-
-// CO₂ VALUE AND STATUS
-if(data.co2!==undefined){
-const co2Value=Number(data.co2);
-valCo2.innerHTML=fmt(co2Value,0)+' <span>ppm</span>';
-const status=getCo2Status(co2Value);
-setStatusPill(statusCo2,status.state,status.label);
-setCardVisual('card-co2',status.state);
-notifyMetricState('co2',status.state,fmt(co2Value,0)+' ppm');
-}
-
-// CURRENT PM2.5
-if(data.pm?.pm2p5!==undefined){
-valPm25.innerHTML=pm25HistoryReady?fmt(Number(data.pm.pm2p5))+' <span>µg/m³</span>':'0 <span>µg/m³</span>';
-}
-
-// VOC VALUE AND STATUS
-if(data.VOCidx!==undefined){
-const vocValue=Number(data.VOCidx);
-valVoc.innerText=fmt(vocValue,0);
-const status=getVocStatus(vocValue);
-setStatusPill(statusVoc,status.state,status.label);
-setCardVisual('card-voc',status.state);
-notifyMetricState('voc',status.state,fmt(vocValue,0));
-}
-
-// PM10 MONITORING ONLY
-if(data.pm?.pm10p0!==undefined){
-valPm10.innerHTML=fmt(Number(data.pm.pm10p0))+' <span>µg/m³</span>';
-}
-
-// TEMPERATURE MONITORING ONLY
-if(data.temp!==undefined){
-valTemp.innerHTML=fmt(Number(data.temp))+' <span>°C</span>';
-}
-
-// HUMIDITY MONITORING ONLY
-if(data.humidity!==undefined){
-valHumidity.innerHTML=fmt(Number(data.humidity))+' <span>%</span>';
-}
-
-// PM1 AND PM4 MONITORING ONLY
-if(data.pm){
-if(data.pm.pm1p0!==undefined){
-valPm1.innerHTML=fmt(Number(data.pm.pm1p0))+' <span>µg/m³</span>';
-}
-if(data.pm.pm4p0!==undefined){
-valPm4.innerHTML=fmt(Number(data.pm.pm4p0))+' <span>µg/m³</span>';
-}
-}
-
-announceFirstReading();
+if(!data){clearStaleSensorData();return;}
 latestTelemetry=data;
+renderTelemetryReadings(data);
+updateSensorStatuses(data);
+[
+['co2',toNum(data.co2),' ppm'],
+['voc',toNum(data.VOCidx),''],
+['pm25avg',latestPm25Avg24h,' µg/m³']
+].forEach(([metric,value,unit])=>{
+const status=metric==='pm25avg'
+?getPm25AverageStatus()
+:getFirmwareStatus(data,metric);
+if(value!==undefined&&value!==null){
+notifyMetricState(metric,status,fmt(value)+unit);
+}else if(!status.raw){
+notificationStates[metric]=null;
+}
+});
+announceFirstReading();
 recordReading(data);
 updateInsights(data);
 updateRecommendations(data);
+updatePm25Average24h();
 if(window.lucide)lucide.createIcons();
 });
-
-// ============================================================
-// DEVICE METADATA
-// ============================================================
 
 let latestLastSeen=null;
 
@@ -983,66 +981,14 @@ setInterval(()=>{
 updateDeviceConnectionStatus(latestLastSeen);
 },15000);
 
-// ============================================================
-// BUZZER CONTROL
-// ============================================================
-
-onValue(ref(db,aeroCubePath+'/controls'),snapshot=>{
-const controls=snapshot.val();
-if(!controls)return;
-if(controls.isBuzzerSilenced!==undefined&&switchBuzzer){
-switchBuzzer.checked=!controls.isBuzzerSilenced;
-textBuzzer.innerText=controls.isBuzzerSilenced?'SILENCED':'ON';
-switchBuzzer.disabled=false;
-}
-});
-
-function updateControls(partialState){
-update(ref(db,aeroCubePath+'/controls'),partialState);
-}
-
-switchBuzzer?.addEventListener('change',e=>{
-updateControls({
-isBuzzerSilenced:!e.target.checked
-});
-});
-
-// ============================================================
-// RECOMMENDATION PATHS
-// ============================================================
-
 const RECOMMENDATIONS_PATHS=[
 aeroCubePath+'/settings/recommendations',
 aeroCubePath+'/settings/recommendation'
 ];
 
-// ============================================================
-// DEFAULT RECOMMENDATIONS
-// ============================================================
-
-const DEFAULT_RECOMMENDATIONS={
-co2:{
-elevated:'Improve ventilation when appropriate. Open windows or doors if outdoor air quality is acceptable, or use mechanical ventilation/exhaust if available. source: Health Canada.',
-poor:'Improve ventilation promptly when appropriate. Open windows or doors if outdoor air quality is acceptable, or use mechanical ventilation/exhaust if available. source: Health Canada',
-good:'Maintain normal ventilation. source: Health Canada.'
-},
-voc:{
-elevated:'Maintain normal indoor-air practices and continue monitoring. source: U.S. EPA — Indoor Air Quality',
-poor:'Identify and reduce or remove the possible VOC source. Improve ventilation when appropriate. Open windows or doors if outdoor air quality is acceptable, or use local exhaust/mechanical ventilation if available. source: U.S. EPA',
-good:'Continue normal ventilation and monitor for significant changes in VOC activity. source: U.S. EPA — Indoor Air Quality'
-},
-pm25:{
-elevated:'Reduce possible sources such as dust, smoke, cooking emissions, or incense.',
-poor:'Identify and reduce possible particle sources such as cooking smoke, tobacco smoke, candles, dust, or other combustion sources. Use exhaust ventilation or particle filtration/air cleaning when available. Ventilate with outdoor air only when outdoor air quality is acceptable. source: U.S. EPA',
-good:'Maintain good indoor-air practices. Reduce unnecessary particle sources and continue monitoring. Ventilate with clean outdoor air when appropriate, and use filtration if needed. source: U.S. EPA'
-}
-};
+const DEFAULT_RECOMMENDATIONS={co2:{},voc:{},pm25:{}};
 
 let recommendationSettings=DEFAULT_RECOMMENDATIONS;
-
-// ============================================================
-// RECOMMENDATION HELPERS
-// ============================================================
 
 function normalizeRecommendationValue(value){
 if(typeof value==='string')return value;
@@ -1057,46 +1003,28 @@ return undefined;
 function mergeRecommendationGroup(defaultGroup,remoteGroup){
 const merged={...defaultGroup};
 if(!remoteGroup||typeof remoteGroup!=='object')return merged;
-Object.keys(defaultGroup).forEach(key=>{
+
+Object.keys(remoteGroup).forEach(key=>{
 const value=normalizeRecommendationValue(remoteGroup[key]);
 if(value)merged[key]=value;
 });
+
 return merged;
 }
 
 function normalizeRecommendations(remote){
-if(!remote||typeof remote!=='object')return DEFAULT_RECOMMENDATIONS;
+if(!remote||typeof remote!=='object')return {co2:{},voc:{},pm25:{}};
+
 const normalized={
 co2:remote.co2||{},
 voc:remote.voc||{},
 pm25:remote.pm25||remote.pm||remote.pm25avg||{}
 };
-const flatMap={
-co2_elevated:['co2_elevated'],
-co2_poor:['co2_poor','co2_high'],
-co2_good:['co2_good'],
-voc_elevated:['voc_elevated'],
-voc_poor:['voc_poor','voc_high'],
-voc_good:['voc_good'],
-pm25_elevated:['pm25_elevated','pm_elevated'],
-pm25_poor:['pm25_poor','pm_poor','pm_high'],
-pm25_good:['pm25_good','pm_good']
-};
-Object.entries(flatMap).forEach(([target,keys])=>{
-const separator=target.indexOf('_');
-const group=target.substring(0,separator);
-const state=target.substring(separator+1);
-for(const key of keys){
-const value=normalizeRecommendationValue(remote[key]);
-if(value){
-if(!normalized[group]||typeof normalized[group]!=='object'){
-normalized[group]={};
-}
-normalized[group][state]=value;
-break;
-}
-}
-});
+const scientific=normalizeScientificContent(remote);
+normalized.co2={...scientific.co2,...normalized.co2};
+normalized.voc={...scientific.voc,...normalized.voc};
+normalized.pm25={...scientific.pm25,...normalized.pm25};
+
 return{
 co2:mergeRecommendationGroup(DEFAULT_RECOMMENDATIONS.co2,normalized.co2),
 voc:mergeRecommendationGroup(DEFAULT_RECOMMENDATIONS.voc,normalized.voc),
@@ -1104,25 +1032,25 @@ pm25:mergeRecommendationGroup(DEFAULT_RECOMMENDATIONS.pm25,normalized.pm25)
 };
 }
 
-function escapeHtml(value){
-return String(value??'').replace(/[&<>"']/g,character=>({
-'&':'&amp;',
-'<':'&lt;',
-'>':'&gt;',
-'"':'&quot;',
-"'":'&#39;'
-})[character]);
+const remoteRecommendations=[null,null,null];
+
+function mergeRemoteContent(base,addition){
+const merged={...base};
+Object.entries(addition||{}).forEach(([key,value])=>{
+if(value&&typeof value==='object'&&!Array.isArray(value)&&
+merged[key]&&typeof merged[key]==='object'&&!Array.isArray(merged[key])){
+merged[key]=mergeRemoteContent(merged[key],value);
+}else{
+merged[key]=value;
+}
+});
+return merged;
 }
 
-// ============================================================
-// FIREBASE RECOMMENDATIONS
-// ============================================================
-
-const remoteRecommendations=[null,null];
-
 function applyRecommendationSettings(){
-const remote=remoteRecommendations[0]||remoteRecommendations[1];
+const remote=remoteRecommendations.reduce((merged,current)=>mergeRemoteContent(merged,current),{});
 recommendationSettings=normalizeRecommendations(remote);
+
 if(latestTelemetry&&previousConnectionState!==false){
 updateRecommendations(latestTelemetry);
 }
@@ -1138,93 +1066,58 @@ remoteRecommendations[1]=snapshot.val();
 applyRecommendationSettings();
 });
 
-// ============================================================
-// CO₂ RECOMMENDATION
-// ============================================================
+onValue(ref(db,SCIENTIFIC_CONTENT_PATHS.recommendations),snapshot=>{
+remoteRecommendations[2]=snapshot.val();
+applyRecommendationSettings();
+});
 
-function getCo2Recommendation(value){
-if(value===undefined||value===null){
-return{state:null,text:'Waiting for CO₂ data.'};
+onValue(ref(db,SCIENTIFIC_CONTENT_PATHS.insight),snapshot=>{
+scientificContent.insight=normalizeScientificContent(snapshot.val());
+if(latestTelemetry&&previousConnectionState!==false){
+updateInsights(latestTelemetry);
 }
-const status=getCo2Status(value);
-return{
-state:status.state,
-text:recommendationSettings.co2[status.state]
-};
-}
+});
 
-// ============================================================
-// VOC RECOMMENDATION
-// ============================================================
-
-function getVocRecommendation(value){
-if(value===undefined||value===null){
-return{state:null,text:'Waiting for VOC data.'};
+function getSensorRecommendation(data,metric,group){
+const status=metric==='pm25avg'
+?getPm25AverageStatus()
+:getFirmwareStatus(data,metric);
+let text;
+if(status.raw&&status.tone){
+const firebaseStatusKey=contentStatusKey(metric,status);
+text=recommendationSettings[group][firebaseStatusKey]||
+recommendationSettings[group][status.tone];
 }
-const status=getVocStatus(value);
-return{
-state:status.state,
-text:recommendationSettings.voc[status.state]
-};
+return{...status,text};
 }
 
-// ============================================================
-// PM2.5 RECOMMENDATION
-// ============================================================
-
-function getPm25Recommendation(){
-if(pm25HistoryReady&&latestPm25Avg24h!==null){
-const status=getPm25AverageStatus(latestPm25Avg24h);
-const prefix='24-hour average: '+fmt(latestPm25Avg24h)+' µg/m³.';
-return{
-state:status.state,
-text:prefix+' '+recommendationSettings.pm25[status.state]
-};
-}
-return{
-state:null,
-text:'Collecting PM2.5 data. The recommendation will appear after a full 24 hours of history.'
-};
-}
-
-// ============================================================
-// RECOMMENDATION OUTPUT
-// ============================================================
-
-function recommendationLine(label,text){
-return'<div><strong>'+escapeHtml(label)+':</strong> '+escapeHtml(text)+'</div>';
+function recommendationLine(label,text,tone){
+const separator=label.indexOf(' — ');
+const metricLabel=separator<0?label:label.slice(0,separator);
+const statusLabel=separator<0?'':label.slice(separator+3);
+const styledLabel=escapeHtml(metricLabel)+
+(statusLabel?' — '+statusTag(tone||'',escapeHtml(statusLabel)):'');
+return contentLine(styledLabel,text);
 }
 
 function updateRecommendations(data){
 if(!recContent||!data)return;
-const co2=getCo2Recommendation(data.co2);
-const voc=getVocRecommendation(data.VOCidx);
-const pm25=getPm25Recommendation();
-const states=[co2.state,voc.state,pm25.state].filter(Boolean);
-let overall='No immediate action needed.';
-if(states.includes('poor')){
-overall='Action is needed for one or more conditions.';
-}else if(states.includes('elevated')){
-overall='Some conditions need attention.';
-}
-const lines=[
-'<div><strong>Overall:</strong> '+escapeHtml(overall)+'</div>',
-recommendationLine('Air Freshness (CO₂)',co2.text),
-recommendationLine('Odors & Chemicals (VOC)',voc.text),
-recommendationLine('PM2.5',pm25.text)
+const metrics=[
+['co2','co2','CO₂'],
+['voc','voc','VOC Index']
 ];
+if(pm25HistoryReady)metrics.push(['pm25avg','pm25','24-hour PM2.5']);
+const lines=metrics.map(([metric,group,label])=>{
+const recommendation=getSensorRecommendation(data,metric,group);
+return recommendationLine(label+' — '+recommendation.label,recommendation.text,recommendation.tone);
+});
+if(!pm25HistoryReady){
+lines.push('<div class="content-item"><strong>WHO PM2.5 24-hour AQG:</strong><p>Collecting PM2.5 data. The recommendation will appear after a full 24 hours of history.</p></div>');
+}
 recContent.innerHTML=lines.join('');
 }
 
-// ============================================================
-// INITIAL PM2.5 HISTORY LOAD
-// ============================================================
-
 updatePm25Average24h();
-
-// ============================================================
-// REFRESH PM2.5 WHEN HISTORY CHANGES
-// ============================================================
 
 onValue(ref(db,aeroCubePath+'/history'),()=>{
 updatePm25Average24h();

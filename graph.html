@@ -19,12 +19,13 @@
 <aside class="sidebar" id="sidebar">
 <div class="sidebar-top-group">
 <div class="sidebar-logo">
-<img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
+<img src="logo/aerocube logo.png" alt="AeroCube Logo">
 </div>
 <div class="nav-links">
 <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
 <a href="graph.html" class="nav-item active"><i data-lucide="line-chart"></i><span>Analytics</span></a>
 <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+<a href="guide.html" class="nav-item"><i data-lucide="book-open-check"></i><span>Guide</span></a>
 <a href="aeroplug.html" class="nav-item"><i data-lucide="plug"></i><span>AeroPlug</span></a>
 <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
 </div>
@@ -44,7 +45,6 @@
 <p class="header-subtitle">Historical sensor data visualization</p>
 </div>
 <div class="header-badges">
-<div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
 </div>
 </header>
 <section class="aeroplug-section">
@@ -61,8 +61,17 @@
 </button>
 </div>
 </div>
+<div class="trend-view-controls">
+<div class="chart-zoom-control">
+<label for="chart-zoom">Zoom</label>
+<input id="chart-zoom" type="range" min="0.5" max="4" step="0.5" value="1" aria-describedby="trend-scroll-help">
+<output id="chart-zoom-value" for="chart-zoom">1× · 6 hours visible</output>
+</div>
+<button class="btn-chart-latest" id="btn-chart-latest" type="button">Latest readings</button>
+<p id="trend-scroll-help">Scroll or swipe horizontally to explore the selected period. Increase zoom for more detail.</p>
+</div>
 <div class="trend-group">
-<h3>Air Quality</h3>
+<h3>Sensor Metrics</h3>
 <div class="trend-summary-grid">
 <article class="trend-summary-card" id="summary-co2">
 <h4>CO₂</h4>
@@ -86,22 +95,40 @@
 <div class="trend-chart-grid">
 <div class="trend-chart-card">
 <h4>CO₂</h4>
+<div class="chart-viewport">
+<div class="chart-scroll" tabindex="0" role="region" aria-label="CO₂ trend" aria-describedby="trend-scroll-help">
+<div class="chart-timeline">
 <div class="chart-wrapper">
 <canvas id="chart-co2"></canvas>
+</div>
+</div>
+</div>
 <div class="chart-empty" id="empty-co2">No data</div>
 </div>
 </div>
 <div class="trend-chart-card">
 <h4>VOC Index</h4>
+<div class="chart-viewport">
+<div class="chart-scroll" tabindex="0" role="region" aria-label="VOC Index trend" aria-describedby="trend-scroll-help">
+<div class="chart-timeline">
 <div class="chart-wrapper">
 <canvas id="chart-voc"></canvas>
+</div>
+</div>
+</div>
 <div class="chart-empty" id="empty-voc">No data</div>
 </div>
 </div>
 <div class="trend-chart-card">
 <h4>PM2.5</h4>
+<div class="chart-viewport">
+<div class="chart-scroll" tabindex="0" role="region" aria-label="PM2.5 trend" aria-describedby="trend-scroll-help">
+<div class="chart-timeline">
 <div class="chart-wrapper">
 <canvas id="chart-pm25"></canvas>
+</div>
+</div>
+</div>
 <div class="chart-empty" id="empty-pm25">No data</div>
 </div>
 </div>
@@ -112,15 +139,27 @@
 <div class="trend-chart-grid environment-grid">
 <div class="trend-chart-card">
 <h4>Temperature</h4>
+<div class="chart-viewport">
+<div class="chart-scroll" tabindex="0" role="region" aria-label="Temperature trend" aria-describedby="trend-scroll-help">
+<div class="chart-timeline">
 <div class="chart-wrapper">
 <canvas id="chart-temp"></canvas>
+</div>
+</div>
+</div>
 <div class="chart-empty" id="empty-temp">No data</div>
 </div>
 </div>
 <div class="trend-chart-card">
 <h4>Humidity</h4>
+<div class="chart-viewport">
+<div class="chart-scroll" tabindex="0" role="region" aria-label="Humidity trend" aria-describedby="trend-scroll-help">
+<div class="chart-timeline">
 <div class="chart-wrapper">
 <canvas id="chart-humidity"></canvas>
+</div>
+</div>
+</div>
 <div class="chart-empty" id="empty-humidity">No data</div>
 </div>
 </div>

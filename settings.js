@@ -70,9 +70,6 @@ const selectPm25Outlet = document.getElementById('select-pm25-outlet');
 
 const btnSave = document.getElementById('btn-save');
 
-const switchBuzzer = document.getElementById('switch-buzzer');
-const textBuzzer = document.getElementById('text-buzzer');
-
 const btnClean = document.getElementById('btn-sps30clean');
 const textSps30Status = document.getElementById('text-sps30-status');
 const modalConfirm = document.getElementById('modal-confirm');
@@ -100,21 +97,21 @@ const THRESHOLD_STANDARDS = {
     standard: 1000,
     unit: ' ppm',
     name: 'CO₂',
-    reference: '<1000 Harmless · 1000–2000 Elevated · >2000 Unacceptable'
+    reference: ''
   },
   voc: {
     slider: sliderVoc,
-    standard: 100,
+    standard: 150,
     unit: '',
     name: 'VOC Index',
-    reference: '1–99 Improvement · Around 100 Normal Baseline · 101–500 Deterioration'
+    reference: ''
   },
   pm25: {
     slider: sliderPm25,
-    standard: 15,
+    standard: 35,
     unit: ' µg/m³',
-    name: '24-hour PM2.5',
-    reference: '≤15 Within WHO 24-hour AQG · >15 Above WHO 24-hour AQG'
+    name: 'PM2.5 automation',
+    reference: ''
   }
 };
 
@@ -128,13 +125,12 @@ function getThresholdColor(key, value) {
   }
 
   if (key === 'voc') {
-    if (value > 100) return SLIDER_COLORS.red;
-    if (value === 100) return SLIDER_COLORS.yellow;
+    if (value > 100) return SLIDER_COLORS.yellow;
     return SLIDER_COLORS.green;
   }
 
   if (key === 'pm25') {
-    if (value > 15) return SLIDER_COLORS.red;
+    if (value > 35) return SLIDER_COLORS.red;
     return SLIDER_COLORS.green;
   }
 
@@ -175,28 +171,6 @@ function setSliderValue(key, value) {
   cfg.slider.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function getReferenceStatus(key, value) {
-  if (key === 'co2') {
-    if (value < 1000) return 'Harmless';
-    if (value <= 2000) return 'Elevated';
-    return 'Unacceptable';
-  }
-
-  if (key === 'voc') {
-    if (value < 100) return 'Improvement';
-    if (value === 100) return 'Normal Baseline';
-    return 'Deterioration';
-  }
-
-  if (key === 'pm25') {
-    return value <= 15
-      ? 'Within WHO 24-hour AQG'
-      : 'Above WHO 24-hour AQG';
-  }
-
-  return '';
-}
-
 function refreshThresholdUi(key) {
   const cfg = THRESHOLD_STANDARDS[key];
 
@@ -210,10 +184,9 @@ function refreshThresholdUi(key) {
   }
 
   const badge = document.getElementById('std-badge-' + key);
-  const note = document.getElementById('std-note-' + key);
   const flag = document.getElementById('std-unsaved-' + key);
 
-  if (!badge || !note) return;
+  if (!badge) return;
 
   const isStandard = value === cfg.standard;
   const unsaved =
@@ -227,15 +200,6 @@ function refreshThresholdUi(key) {
     flag.textContent = unsaved ? 'Unsaved — press Save' : '';
   }
 
-  note.textContent =
-    'Reference status at this value: ' +
-    getReferenceStatus(key, value) +
-    '.';
-
-  if (key === 'pm25') {
-    note.textContent +=
-      ' WHO comparison applies to a rolling 24-hour average.';
-  }
 }
 
 function buildThresholdUi() {
@@ -256,9 +220,7 @@ function buildThresholdUi() {
     '.std-badge.standard{background:rgba(16,185,129,.15);color:#10b981}' +
     '.std-badge.custom{background:rgba(56,189,248,.15);color:#38bdf8}' +
     '.std-unsaved{font-size:10px;font-weight:600;color:#FACC15}' +
-    '.std-note{font-size:11px;line-height:1.5;color:var(--text-sub,#94a3b8)}' +
-    '.std-ref{font-size:11px;line-height:1.5;color:var(--text-muted,#64748b)}' +
-    '.std-ref b{color:var(--text-sub,#94a3b8)}';
+    '';
 
   document.head.appendChild(style);
 
@@ -329,12 +291,6 @@ function buildThresholdUi() {
           key +
           '"></span>' +
         '</div>' +
-        '<div class="std-note" id="std-note-' +
-        key +
-        '"></div>' +
-        '<div class="std-ref"><b>Reference levels:</b> ' +
-        cfg.reference +
-        '</div>' +
       '</div>'
     );
 
@@ -368,7 +324,7 @@ function buildThresholdUi() {
       });
   });
 
-  if (btnSave) {
+  if (btnSave && btnSave.parentNode) {
     const resetAll = document.createElement('button');
 
     resetAll.type = 'button';
@@ -440,23 +396,6 @@ onValue(ref(db, aeroCubePath + '/settings'), snapshot => {
     selectPm25Outlet.value = relayAssignments.pm25;
   }
 });
-
-onValue(
-  ref(db, aeroCubePath + '/controls/isBuzzerSilenced'),
-  snapshot => {
-    const isSilenced = snapshot.val();
-
-    if (
-      isSilenced !== undefined &&
-      switchBuzzer
-    ) {
-      switchBuzzer.checked = !isSilenced;
-      textBuzzer.innerText =
-        isSilenced ? 'SILENCED' : 'ON';
-      switchBuzzer.disabled = false;
-    }
-  }
-);
 
 onValue(
   ref(db, aeroCubePath + '/settings/maintenance/SPS30Clean'),
@@ -706,14 +645,4 @@ btnSave.addEventListener('click', () => {
         }
       }, 2000);
     });
-});
-
-switchBuzzer?.addEventListener('change', e => {
-  update(
-    ref(db, aeroCubePath + '/controls'),
-    {
-      isBuzzerSilenced:
-        !e.target.checked
-    }
-  );
 });

@@ -20,12 +20,13 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo">
       </div>
       <div class="nav-links">
         <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
         <a href="graph.html" class="nav-item"><i data-lucide="line-chart"></i><span>Analytics</span></a>
         <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="guide.html" class="nav-item"><i data-lucide="book-open-check"></i><span>Guide</span></a>
         <a href="aeroplug.html" class="nav-item"><i data-lucide="plug"></i><span>AeroPlug</span></a>
         <a href="settings.html" class="nav-item active"><i data-lucide="settings"></i><span>Settings</span></a>
       </div>
@@ -47,7 +48,6 @@
         <p class="header-subtitle">Configure automation thresholds and alerts</p>
       </div>
       <div class="header-badges">
-        <div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
       </div>
     </header>
 
@@ -74,7 +74,9 @@
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="sliders-horizontal"></i> Automation Thresholds</h2>
-        <button class="btn-save" id="btn-save"><i data-lucide="save"></i> Save Configuration</button>
+        <div class="threshold-actions">
+          <button class="btn-save" id="btn-save"><i data-lucide="save"></i> Save Configuration</button>
+        </div>
       </div>
 
       <div class="aeroplug-content">
@@ -113,6 +115,7 @@
 
             <label class="outlet-select-label" for="select-co2-outlet">Controlled outlet</label>
             <select class="outlet-select" id="select-co2-outlet">
+              <option value="none">None</option>
               <option value="relay1">Outlet 1</option>
               <option value="relay2">Outlet 2</option>
             </select>
@@ -134,7 +137,7 @@
             <div class="t-recommendation">
               <strong>Reference levels:</strong><br>
               1–99 — Improvement<br>
-              Around 100 — Normal Baseline<br>
+              100 — Baseline<br>
               101–500 — Deterioration
             </div>
 
@@ -144,6 +147,7 @@
 
             <label class="outlet-select-label" for="select-voc-outlet">Controlled outlet</label>
             <select class="outlet-select" id="select-voc-outlet">
+              <option value="none">None</option>
               <option value="relay1">Outlet 1</option>
               <option value="relay2">Outlet 2</option>
             </select>
@@ -159,17 +163,13 @@
             </div>
 
             <div class="t-value" id="val-pm25">-- <span>µg/m³</span></div>
-            <div class="slider-labels"><span>0 µg/m³</span><span>100 µg/m³</span></div>
-            <input type="range" id="slider-pm25" min="0" max="100" step="1" value="15" class="range-slider">
+            <div class="slider-labels"><span>0 µg/m³</span><span>250 µg/m³</span></div>
+            <input type="range" id="slider-pm25" min="0" max="250" step="1" value="35" class="range-slider">
 
             <div class="t-recommendation">
-              <strong>24-hour PM2.5 reference:</strong><br>
-              ≤ 15 µg/m³ — Within WHO 24-hour AQG<br>
-              &gt; 15 µg/m³ — Above WHO 24-hour AQG
-            </div>
-
-            <div class="t-recommendation">
-              <strong>Important:</strong> WHO classification is based on the rolling 24-hour average, not a single instantaneous PM2.5 reading.
+              <strong>PM2.5 automation reference:</strong><br>
+              ≤ 35 µg/m³ — Within automation reference<br>
+              &gt; 35 µg/m³ — Above automation reference
             </div>
 
             <div class="t-recommendation">
@@ -178,38 +178,12 @@
 
             <label class="outlet-select-label" for="select-pm25-outlet">Controlled outlet</label>
             <select class="outlet-select" id="select-pm25-outlet">
+              <option value="none">None</option>
               <option value="relay1">Outlet 1</option>
               <option value="relay2">Outlet 2</option>
             </select>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section class="aeroplug-section">
-      <div class="section-header">
-        <h2><i data-lucide="volume-2"></i> Audible Alert (Buzzer)</h2>
-      </div>
-
-      <div class="aeroplug-content">
-        <div class="relay-item" style="border:1px solid var(--border);background:var(--bg-inner);border-radius:10px;">
-          <div class="relay-info">
-            <div class="card-icon"><i data-lucide="volume-2"></i></div>
-            <div>
-              <div class="relay-title">AeroCube Local Buzzer</div>
-              <div class="relay-state" id="text-buzzer">--</div>
-            </div>
-          </div>
-
-          <label class="switch">
-            <input type="checkbox" id="switch-buzzer" disabled>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <p class="buzzer-note">
-          Controls the AeroCube's local buzzer alert. When ON, the buzzer can sound during configured alert conditions. When SILENCED, the buzzer is muted but air quality monitoring continues normally.
-        </p>
       </div>
     </section>
 

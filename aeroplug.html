@@ -21,12 +21,13 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top-group">
       <div class="sidebar-logo">
-        <img src="logo/Aerocube-Logo.svg" alt="AeroCube Logo" onerror="this.style.display='none'">
+        <img src="logo/aerocube logo.png" alt="AeroCube Logo">
       </div>
       <div class="nav-links">
         <a href="index.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
         <a href="graph.html" class="nav-item"><i data-lucide="line-chart"></i><span>Analytics</span></a>
         <a href="History.html" class="nav-item"><i data-lucide="clock"></i><span>History</span></a>
+        <a href="guide.html" class="nav-item"><i data-lucide="book-open-check"></i><span>Guide</span></a>
         <a href="aeroplug.html" class="nav-item active"><i data-lucide="plug"></i><span>AeroPlug</span></a>
         <a href="settings.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
       </div>
@@ -47,7 +48,6 @@
         <p class="header-subtitle">Manage connected devices and operating mode</p>
       </div>
       <div class="header-badges">
-        <div class="badge badge-live"><div class="badge-dot"></div>LIVE SYNC</div>
       </div>
     </header>
 
@@ -64,10 +64,7 @@
         <div class="auto-mode-info" id="auto-mode-info">
           <div class="auto-mode-label">AUTOMATIC MODE</div>
           <p>AeroCube automatically controls the connected devices according to the configured thresholds.</p>
-          <div class="auto-rules">
-            <div class="auto-rule"><strong>Relay 1:</strong> Activates when CO₂ ≥ CO₂ threshold OR PM2.5 AQI ≥ PM AQI threshold</div>
-            <div class="auto-rule"><strong>Relay 2:</strong> Activates when VOC Index ≥ VOC threshold</div>
-          </div>
+          
         </div>
         <div class="auto-mode-info hidden" id="manual-mode-info">
           <div class="auto-mode-label" style="color: var(--accent-yellow);">MANUAL MODE</div>
