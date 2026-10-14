@@ -712,8 +712,8 @@ return readings;
 async function updatePm25Average24h(){
 if(!valPm25Avg24h)return;
 let message='Waiting for 24-hour PM2.5 history.';
-latestPm25Avg24h=null;
-pm25HistoryReady=false;
+let average=null;
+let historyReady=false;
 try{
 const snapshot=await get(ref(db,aeroCubePath+'/history'));
 const now=Date.now();
@@ -734,16 +734,19 @@ const session=getCurrentPm25Session(history,now);
 const readings=session.filter(item=>item.timestamp>=now-PM25_WINDOW_MS);
 const latestValue=toNum(latestTelemetry?.pm?.pm2p5);
 const latestTimestamp=normalizeTimestamp(latestTelemetry?.timestamp)||now;
-if(latestValue!==undefined&&latestTimestamp>=now-PM25_WINDOW_MS&&
+if(latestValue!==undefined&&latestTimestamp<=now&&latestTimestamp>=now-PM25_WINDOW_MS&&
 !readings.some(item=>item.timestamp===latestTimestamp)){
 readings.push({timestamp:latestTimestamp,value:latestValue});
 }
 readings.sort((a,b)=>a.timestamp-b.timestamp);
 if(readings.length){
-latestPm25Avg24h=readings.reduce((sum,item)=>sum+item.value,0)/readings.length;
-const collectedMs=readings[readings.length-1].timestamp-readings[0].timestamp;
-pm25HistoryReady=collectedMs>=PM25_WINDOW_MS;
-message=collectedMs>=PM25_WINDOW_MS
+average=readings.reduce((sum,item)=>sum+item.value,0)/readings.length;
+// The rolling window normally spans slightly less than 24 hours between samples.
+// Check collection duration against the unfiltered history, not the window.
+const firstTimestamp=session[0]?.timestamp??readings[0].timestamp;
+const collectedMs=readings[readings.length-1].timestamp-firstTimestamp;
+historyReady=collectedMs>=PM25_WINDOW_MS;
+message=historyReady
 ?'Rolling 24-hour average calculated from recorded PM2.5 readings.'
 :'Rolling PM2.5 average calculated from '+fmt(collectedMs/(60*60*1000))+' hours of available readings.';
 }
@@ -752,6 +755,8 @@ message=collectedMs>=PM25_WINDOW_MS
 console.error('Unable to calculate 24-hour PM2.5 average:',error);
 message='Unable to load PM2.5 history.';
 }
+latestPm25Avg24h=average;
+pm25HistoryReady=historyReady;
 renderReading(valPm25Avg24h,latestPm25Avg24h,'µg/m³');
 if(pm25HistoryNote)pm25HistoryNote.textContent=message;
 if(latestTelemetry&&previousConnectionState!==false){

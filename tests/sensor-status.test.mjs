@@ -145,3 +145,112 @@ test('history does not invent individual statuses for legacy records', async () 
   assert.match(html, /Deterioration/);
   assert.equal(page.run('formatNumber(null)'), '--');
 });
+
+const PM25_TEST_NOW = Date.UTC(2026, 9, 15, 12);
+const HOUR_MS = 60 * 60 * 1000;
+
+function pm25History(hours, value) {
+  return Object.fromEntries(Array.from({ length: hours * 10 + 1 }, (_, index) => [
+    'reading' + index,
+    { timestamp: PM25_TEST_NOW - hours * HOUR_MS + index * 6 * 60000 - 60000, pm: { pm2p5: value } }
+  ]));
+}
+
+async function loadPm25Dashboard(history, telemetry = {}) {
+  const page = loadPage('index.html', 'script.js');
+  await new Promise(resolve => setImmediate(resolve));
+  page.run(`
+    Date.now=()=>${PM25_TEST_NOW};
+    const testHistory=${JSON.stringify(history)};
+    get=async()=>({exists:()=>true,val:()=>testHistory});
+    latestTelemetry=${JSON.stringify(telemetry)};
+  `);
+  for (const [path, type] of [['/Infos/insight', 'insight'], ['/Infos/actionableRecommendation', 'recommendation']]) {
+    page.listeners.get(path)({ val: () => ({ pm25: {
+      above_WHO24hAQG: 'Above-guideline ' + type,
+      within_WHO24hAQG: 'Within-guideline ' + type
+    } }) });
+  }
+  await page.run('updatePm25Average24h()');
+  return page;
+}
+
+test('24-hour PM2.5 unlocks status, insight and recommendation despite a 23.9-hour rolling sample span', async () => {
+  const history = pm25History(25, 32.7);
+  // This older value proves that readiness can use full history without adding
+  // readings outside the rolling window to the displayed average.
+  history.reading0.pm.pm2p5 = 999;
+  const page = await loadPm25Dashboard(history);
+  assert.equal(page.run('pm25HistoryReady'), true);
+  assert.ok(Math.abs(page.run('latestPm25Avg24h') - 32.7) < 1e-9);
+  assert.match(page.elements.get('val-pm25-24h').innerHTML, /^32\.7 /);
+  assert.equal(page.elements.get('status-pm25-24h').innerText, 'Above WHO 24-hour AQG');
+  assert.equal(page.elements.get('status-pm25-24h').className, 'card-status critical');
+  assert.match(page.elements.get('pm25-history-note').textContent, /Rolling 24-hour average/);
+  assert.match(page.elements.get('insight-text').innerHTML, /Above-guideline insight/);
+  assert.match(page.elements.get('recommendations-content').innerHTML, /Above-guideline recommendation/);
+  assert.doesNotMatch(page.elements.get('insight-text').innerHTML, /Collecting PM2.5/);
+  assert.doesNotMatch(page.elements.get('recommendations-content').innerHTML, /Collecting PM2.5/);
+});
+
+test('24-hour PM2.5 within-guideline status includes the existing threshold boundary', async () => {
+  for (const value of [0, 15]) {
+    const page = await loadPm25Dashboard(pm25History(25, value));
+    assert.equal(page.elements.get('status-pm25-24h').innerText, 'Within WHO 24-hour AQG');
+    assert.equal(page.elements.get('status-pm25-24h').className, 'card-status normal');
+    assert.match(page.elements.get('insight-text').innerHTML, /Within-guideline insight/);
+    assert.match(page.elements.get('recommendations-content').innerHTML, /Within-guideline recommendation/);
+  }
+});
+
+test('PM2.5 genuinely short history continues collecting until readings span 24 hours', async () => {
+  const page = await loadPm25Dashboard(pm25History(23, 32.7));
+  assert.equal(page.run('pm25HistoryReady'), false);
+  assert.equal(page.elements.get('status-pm25-24h').innerText, 'Collecting Data');
+  assert.match(page.elements.get('insight-text').innerHTML, /Collecting PM2.5/);
+  assert.match(page.elements.get('recommendations-content').innerHTML, /Collecting PM2.5/);
+  assert.doesNotMatch(page.elements.get('insight-text').innerHTML, /Above-guideline insight/);
+});
+
+test('PM2.5 readiness transitions at exactly 24 hours using the newest telemetry reading', async () => {
+  const history = pm25History(23, 32.7);
+  history.first = { timestamp: PM25_TEST_NOW - 24 * HOUR_MS, pm: { pm2p5: 32.7 } };
+  const page = await loadPm25Dashboard(history);
+  assert.equal(page.run('pm25HistoryReady'), false);
+  page.run(`latestTelemetry={timestamp:${PM25_TEST_NOW},pm:{pm2p5:32.7}};`);
+  await page.run('updatePm25Average24h()');
+  assert.equal(page.run('pm25HistoryReady'), true);
+  assert.equal(page.elements.get('status-pm25-24h').innerText, 'Above WHO 24-hour AQG');
+  assert.match(page.elements.get('recommendations-content').innerHTML, /Above-guideline recommendation/);
+});
+
+test('invalid or future PM2.5 records cannot satisfy 24-hour collection', async () => {
+  const history = pm25History(23, 32.7);
+  history.missing = { timestamp: PM25_TEST_NOW - 30 * HOUR_MS, pm: { pm2p5: null } };
+  history.invalid = { timestamp: PM25_TEST_NOW - 30 * HOUR_MS, pm: { pm2p5: 'invalid' } };
+  history.future = { timestamp: PM25_TEST_NOW + HOUR_MS, pm: { pm2p5: 999 } };
+  const page = await loadPm25Dashboard(history, { timestamp: PM25_TEST_NOW + HOUR_MS, pm: { pm2p5: 999 } });
+  assert.equal(page.run('pm25HistoryReady'), false);
+  assert.ok(Math.abs(page.run('latestPm25Avg24h') - 32.7) < 1e-9);
+});
+
+test('PM2.5 history outside the rolling window cannot produce an average or status', async () => {
+  const page = await loadPm25Dashboard({
+    first: { timestamp: PM25_TEST_NOW - 72 * HOUR_MS, pm: { pm2p5: 32.7 } },
+    last: { timestamp: PM25_TEST_NOW - 48 * HOUR_MS, pm: { pm2p5: 32.7 } }
+  });
+  assert.equal(page.run('latestPm25Avg24h'), null);
+  assert.equal(page.run('pm25HistoryReady'), false);
+  assert.equal(page.elements.get('status-pm25-24h').innerText, 'Collecting Data');
+});
+
+test('PM2.5 history refresh preserves the ready status while its request is pending', async () => {
+  const page = await loadPm25Dashboard(pm25History(25, 32.7));
+  page.run('let resolveHistory;get=()=>new Promise(resolve=>{resolveHistory=resolve;});');
+  const refresh = page.run('updatePm25Average24h()');
+  assert.equal(page.run('pm25HistoryReady'), true);
+  assert.equal(page.run('getPm25AverageStatus().label'), 'Above WHO 24-hour AQG');
+  page.run('resolveHistory({exists:()=>true,val:()=>testHistory});');
+  await refresh;
+  assert.equal(page.run('pm25HistoryReady'), true);
+});
