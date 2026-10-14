@@ -2765,3 +2765,120 @@ input:disabled + .slider {
     font-size: 13px;
   }
 }
+/* =========================================================
+   COMPATIBILITY PATCH  –  paste at the VERY BOTTOM of your CSS
+   Does not change the design. Only fixes layout bugs and
+   adds iOS / Android compatibility.
+========================================================= */
+
+/* ---------- 1. FIX: CO2 bar + VOC gauge overflowing their cards ----------
+   Canvas is taken out of the layout flow so it can't collapse the card. */
+
+.co2-gauge-widget,
+.voc-gauge {
+  flex: 0 0 auto;
+  min-height: auto;
+}
+
+.co2-gauge-chart canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 2:1 ratio box that works on every iOS/Android version
+   (replaces aspect-ratio, which older iOS ignores) */
+.voc-gauge-chart {
+  aspect-ratio: auto;
+}
+
+.voc-gauge-chart::before {
+  content: '';
+  display: block;
+  padding-top: 50%;
+}
+
+.voc-gauge-chart canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.voc-gauge-readout {
+  bottom: 0;
+}
+
+.voc-gauge {
+  padding-bottom: 6px;
+}
+
+/* ---------- 2. Prevent grid/flex children from overflowing sideways ---------- */
+
+.card,
+.main-content,
+.device-status-left,
+.insight-desc {
+  min-width: 0;
+}
+
+.metrics-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1200px) {
+  .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 3. Text sizing / tap behaviour (iOS Safari + Android Chrome) ---------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  touch-action: manipulation;
+}
+
+/* ---------- 4. Real screen height on mobile (address bar on iOS/Android) ---------- */
+
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+
+  .sidebar,
+  .sidebar-overlay,
+  .modal-overlay {
+    height: 100dvh;
+  }
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.modal-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
