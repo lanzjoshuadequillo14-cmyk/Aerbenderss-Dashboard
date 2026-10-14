@@ -67,6 +67,39 @@
       </div>
     </section>
 
+    <section class="guide-section guide-article" id="tft-dashboard" aria-labelledby="guide-tft-title">
+      <div class="guide-header">
+        <h2 id="guide-tft-title"><i data-lucide="monitor"></i> AeroCube TFT Dashboard Guide</h2>
+        <p class="guide-subtitle">Use the controls beside the display to view air readings and check connectivity. The dashboard opens automatically after startup.</p>
+      </div>
+
+      <h3>Button controls</h3>
+      <figure class="guide-figure">
+        <img src="images/tftdashboard/tftdashboardcontrols.png" alt="AeroCube display on the left; upper knob labeled 1 turns to highlight and presses down to select; lower button labeled 2 opens the menu." width="1128" height="371" loading="lazy" decoding="async">
+      </figure>
+      <p>Press and release the <strong>lower button</strong> to open Mode Select. Turn the <strong>upper knob</strong> slowly to highlight an option, then press it straight down to open that screen. Use short presses.</p>
+
+      <h3>Open a screen</h3>
+      <figure class="guide-figure">
+        <img src="images/tftdashboard/tftdashboardmodeselect.png" alt="Mode Select with DASHBOARD highlighted in white. Steps: press the lower button, turn the upper knob, then press the upper knob." width="1128" height="324" loading="lazy" decoding="async">
+      </figure>
+      <p>The option filled in white is selected. <strong>DASHBOARD</strong> shows sensor readings; <strong>CONNECTIVITY</strong> shows WiFi and Firebase status. To return to the dashboard, open the menu, highlight DASHBOARD and press the knob.</p>
+
+      <h3>Read the dashboard</h3>
+      <figure class="guide-figure">
+        <img src="images/tftdashboard/tftdashboardandconnectivity.png" alt="Example dashboard: 30 degrees Celsius, 80 percent humidity, CO2 484 ppm Harmless, VOC Index 70 Improvement, and PM2.5 44.4 micrograms per cubic meter. Connectivity shows WiFi and Firebase connected." width="1128" height="441" loading="lazy" decoding="async">
+        <figcaption>Example screens; values change as new readings arrive.</figcaption>
+      </figure>
+      <p>The top row shows temperature (&deg;C) and humidity (%). Below are CO&#8322; (ppm), VOC Index and PM2.5 (&micro;g/m&sup3;). CO&#8322; and VOC use colored status labels; PM2.5 displays a numeric reading in white. See the <a href="#sensor-0-readings">CO&#8322;</a> and <a href="#sensor-1-readings">VOC Index</a> ranges below.</p>
+
+      <h3>Check connectivity</h3>
+      <p>Open CONNECTIVITY to check WiFi (network) and Firebase (cloud). Green <strong>CONNECTED</strong> means the link is ready; red <strong>DISCONNECTED</strong> means it is unavailable. Reopen this screen to refresh the status. If a link stays disconnected, check the WiFi and internet connection.</p>
+
+      <h3>Screen messages</h3>
+      <p><strong>Waiting</strong> or <strong>--</strong>: no usable reading yet; allow time for startup. <strong>No data</strong>: readings stopped updating or are invalid. <strong>Cleaning</strong>: the PM sensor is cleaning; its reading returns afterward.</p>
+      <p>Use the <a href="index.html">web dashboard</a> for appliance controls and <a href="settings.html">Settings</a> for automation. The physical controls switch TFT screens.</p>
+    </section>
+
     <section class="guide-section" id="tips">
       <div class="guide-header">
         <h2><i data-lucide="lightbulb"></i> Quick Indoor Air Tips</h2>
@@ -110,7 +143,7 @@
       <span class="guide-anchor" id="environment">
       </span>
       <h3 id="sensor-0-readings">SCD41 readings</h3>
-      <p>CO₂ is measured in parts per million, or ppm. The SCD41 also gives temperature and humidity readings. Here is how to read the project’s reference table.</p>
+      <p>CO₂ is measured in parts per million (ppm). The CO₂ reference ranges below are based on the German Environment Agency’s (Umweltbundesamt, UBA) hygienic guide values for indoor carbon dioxide. The SCD41 also measures temperature and humidity, which are displayed as environmental readings..</p>
       <div class="guide-table-wrap" role="region" aria-labelledby="sensor-0-readings">
       <table class="guide-table" role="table" aria-labelledby="sensor-0-readings">
         <thead role="rowgroup">
