@@ -46,7 +46,7 @@
     <header class="header">
       <div class="header-title">
         <h1>Settings</h1>
-        <p class="header-subtitle">Configure automation thresholds and alerts</p>
+        <p class="header-subtitle">Configure AeroCube automation thresholds</p>
       </div>
       <div class="header-badges">
       </div>
@@ -70,23 +70,27 @@
 
         <button type="submit" class="device-selector-button">Save Device IDs</button>
       </form>
+      <p class="device-selector-note" id="device-selection-note">Current firmware uses AeroCube ID aerocube_01.</p>
     </section>
 
     <section class="aeroplug-section">
       <div class="section-header">
         <h2><i data-lucide="sliders-horizontal"></i> Automation Thresholds</h2>
         <div class="threshold-actions">
-          <button class="btn-save" id="btn-save"><i data-lucide="save"></i> Save Configuration</button>
+          <button class="btn-save" id="btn-save" type="button"><i data-lucide="save"></i> Save Thresholds</button>
         </div>
       </div>
 
       <div class="aeroplug-content">
-        <p style="font-size:13px;color:var(--text-sub);line-height:1.6;margin-bottom:8px;">
-          Define the environmental conditions that automatically activate the connected AeroPlug devices. These automation values are configurable control points.
+        <p class="automation-notice">
+          <strong>Fixed outlets:</strong> Outlet 1 turns ON when either the CO₂ or VOC trigger is active and turns OFF only when both triggers have cleared. Outlet 2 follows the PM2.5 trigger independently, using the live reading, not the dashboard’s 24-hour average.
         </p>
 
-        <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;">
-          Hysteresis Notice: An activated outlet will deactivate when the reading falls more than 15% below its configured threshold.
+        <p class="automation-notice">
+          Each sensor’s trigger activates at a reading greater than or equal to its threshold, clears below 85% of that threshold, and keeps its previous state between those limits. Hysteresis is fixed at 15%. Changing a threshold resets that sensor’s trigger before recalculation; changing modes resets all triggers.
+        </p>
+        <p class="automation-notice">
+          Enter whole-number thresholds greater than zero. Save each field separately, or use Save Thresholds to validate and save each field independently. A save confirms the Firebase write. AeroCube reads the settings, calculates outputs, and sends relay commands approximately every five seconds, plus network time. Saving thresholds keeps the current mode. See <a href="aeroplug.html">AeroPlug Control</a> for mode, manual requests, and reported outlet states.
         </p>
 
         <div class="threshold-grid">
@@ -95,13 +99,25 @@
               <div class="card-icon"><i data-lucide="wind"></i></div>
               <div>
                 <div class="t-title">CO₂ Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when CO₂ reaches this value</div>
+                <div class="t-desc">Outlet 1 — shared with the VOC trigger</div>
               </div>
             </div>
 
             <div class="t-value" id="val-co2">-- <span>ppm</span></div>
             <div class="slider-labels"><span>400 ppm</span><span>2500 ppm</span></div>
-            <input type="range" id="slider-co2" min="400" max="2500" step="10" value="1000" class="range-slider">
+            <input type="range" id="slider-co2" min="400" max="2500" step="1" value="1000" class="range-slider" aria-label="CO₂ threshold slider" aria-describedby="std-release-co2">
+            <div class="std-panel">
+              <label class="std-input" for="std-input-co2">Set CO₂ threshold (ppm)
+                <input type="number" id="std-input-co2" min="1" step="1" placeholder="Enter whole-number threshold" aria-describedby="std-release-co2 std-feedback-co2">
+              </label>
+              <div class="std-row">
+                <button class="std-reset" id="std-reset-co2" type="button">Use reference (1000 ppm)</button>
+                <button class="btn-save threshold-save" id="std-save-co2" type="button">Save CO₂</button>
+              </div>
+              <span class="std-unsaved" id="std-unsaved-co2"></span>
+              <p class="threshold-release" id="std-release-co2"></p>
+              <p class="control-feedback" id="std-feedback-co2" role="status" aria-live="polite"></p>
+            </div>
 
             <div class="t-recommendation">
               <strong>Reference levels:</strong><br>
@@ -114,12 +130,7 @@
               <strong>Recommended mitigation:</strong> ventilation or exhaust fan
             </div>
 
-            <label class="outlet-select-label" for="select-co2-outlet">Controlled outlet</label>
-            <select class="outlet-select" id="select-co2-outlet">
-              <option value="none">None</option>
-              <option value="relay1">Outlet 1</option>
-              <option value="relay2">Outlet 2</option>
-            </select>
+            <p class="outlet-assignment"><strong>Fixed: Outlet 1</strong><br>ON while either CO₂ or VOC is active; OFF after both clear.</p>
           </div>
 
           <div class="threshold-card">
@@ -127,13 +138,25 @@
               <div class="card-icon"><i data-lucide="flask-conical"></i></div>
               <div>
                 <div class="t-title">VOC Index Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when VOC Index reaches this value</div>
+                <div class="t-desc">Outlet 1 — shared with the CO₂ trigger</div>
               </div>
             </div>
 
             <div class="t-value" id="val-voc">-- <span>Index</span></div>
             <div class="slider-labels"><span>1</span><span>500</span></div>
-            <input type="range" id="slider-voc" min="1" max="500" step="1" value="150" class="range-slider">
+            <input type="range" id="slider-voc" min="1" max="500" step="1" value="150" class="range-slider" aria-label="VOC Index threshold slider" aria-describedby="std-release-voc">
+            <div class="std-panel">
+              <label class="std-input" for="std-input-voc">Set VOC threshold (VOC Index)
+                <input type="number" id="std-input-voc" min="1" step="1" placeholder="Enter whole-number threshold" aria-describedby="std-release-voc std-feedback-voc">
+              </label>
+              <div class="std-row">
+                <button class="std-reset" id="std-reset-voc" type="button">Use reference (150 Index)</button>
+                <button class="btn-save threshold-save" id="std-save-voc" type="button">Save VOC</button>
+              </div>
+              <span class="std-unsaved" id="std-unsaved-voc"></span>
+              <p class="threshold-release" id="std-release-voc"></p>
+              <p class="control-feedback" id="std-feedback-voc" role="status" aria-live="polite"></p>
+            </div>
 
             <div class="t-recommendation">
               <strong>Reference levels:</strong><br>
@@ -146,12 +169,7 @@
               <strong>Recommended mitigation:</strong> source removal and ventilation
             </div>
 
-            <label class="outlet-select-label" for="select-voc-outlet">Controlled outlet</label>
-            <select class="outlet-select" id="select-voc-outlet">
-              <option value="none">None</option>
-              <option value="relay1">Outlet 1</option>
-              <option value="relay2">Outlet 2</option>
-            </select>
+            <p class="outlet-assignment"><strong>Fixed: Outlet 1</strong><br>ON while either CO₂ or VOC is active; OFF after both clear.</p>
           </div>
 
           <div class="threshold-card">
@@ -159,13 +177,25 @@
               <div class="card-icon"><i data-lucide="cloud"></i></div>
               <div>
                 <div class="t-title">PM2.5 Automation Threshold</div>
-                <div class="t-desc">Choose which outlet responds when PM2.5 reaches this value</div>
+                <div class="t-desc">Outlet 2 — independent live PM2.5 trigger</div>
               </div>
             </div>
 
             <div class="t-value" id="val-pm25">-- <span>µg/m³</span></div>
-            <div class="slider-labels"><span>0 µg/m³</span><span>250 µg/m³</span></div>
-            <input type="range" id="slider-pm25" min="0" max="250" step="1" value="35" class="range-slider">
+            <div class="slider-labels"><span>1 µg/m³</span><span>250 µg/m³</span></div>
+            <input type="range" id="slider-pm25" min="1" max="250" step="1" value="35" class="range-slider" aria-label="PM2.5 threshold slider" aria-describedby="std-release-pm25">
+            <div class="std-panel">
+              <label class="std-input" for="std-input-pm25">Set PM2.5 threshold (µg/m³)
+                <input type="number" id="std-input-pm25" min="1" step="1" placeholder="Enter whole-number threshold" aria-describedby="std-release-pm25 std-feedback-pm25">
+              </label>
+              <div class="std-row">
+                <button class="std-reset" id="std-reset-pm25" type="button">Use reference (35 µg/m³)</button>
+                <button class="btn-save threshold-save" id="std-save-pm25" type="button">Save PM2.5</button>
+              </div>
+              <span class="std-unsaved" id="std-unsaved-pm25"></span>
+              <p class="threshold-release" id="std-release-pm25"></p>
+              <p class="control-feedback" id="std-feedback-pm25" role="status" aria-live="polite"></p>
+            </div>
 
             <div class="t-recommendation">
               <strong>PM2.5 automation reference:</strong><br>
@@ -177,12 +207,7 @@
               <strong>Recommended mitigation:</strong> source reduction, exhaust ventilation or particle filtration
             </div>
 
-            <label class="outlet-select-label" for="select-pm25-outlet">Controlled outlet</label>
-            <select class="outlet-select" id="select-pm25-outlet">
-              <option value="none">None</option>
-              <option value="relay1">Outlet 1</option>
-              <option value="relay2">Outlet 2</option>
-            </select>
+            <p class="outlet-assignment"><strong>Fixed: Outlet 2</strong><br>Follows only the live PM2.5 trigger.</p>
           </div>
         </div>
       </div>

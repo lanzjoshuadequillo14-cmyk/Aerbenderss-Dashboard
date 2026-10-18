@@ -57,19 +57,19 @@
       <div class="section-header">
         <h2><i data-lucide="settings-2"></i> Operating Mode</h2>
         <div class="mode-toggle-group">
-          <button class="mode-btn active" id="btn-auto">AUTOMATIC</button>
-          <button class="mode-btn" id="btn-manual">MANUAL</button>
+          <button class="mode-btn" id="btn-auto" type="button" aria-pressed="false" disabled>AUTOMATIC</button>
+          <button class="mode-btn" id="btn-manual" type="button" aria-pressed="false" disabled>MANUAL</button>
         </div>
       </div>
       <div class="aeroplug-content">
-        <div class="auto-mode-info" id="auto-mode-info">
+        <p class="control-feedback" id="mode-feedback" role="status" aria-live="polite">Loading saved operating mode…</p>
+        <div class="auto-mode-info hidden" id="auto-mode-info">
           <div class="auto-mode-label">AUTOMATIC MODE</div>
-          <p>AeroCube automatically controls the connected devices according to the configured thresholds.</p>
-          
+          <p>AeroCube controls Outlet 1 using the CO₂ and VOC triggers: either can request ON, and both must clear before it requests OFF. Outlet 2 follows the live PM2.5 trigger independently.</p>
         </div>
         <div class="auto-mode-info hidden" id="manual-mode-info">
           <div class="auto-mode-label" style="color: var(--accent-yellow);">MANUAL MODE</div>
-          <p>Relays are controlled manually using the switches below. The AeroCube will not automatically activate devices based on sensor readings.</p>
+          <p>The switches save manual outlet requests. AeroCube reads those requests and sends the relay commands to AeroPlug.</p>
         </div>
       </div>
     </section>
@@ -96,12 +96,13 @@
             <div class="relay-info">
               <div class="card-icon"><i data-lucide="plug"></i></div>
               <div>
-                <div class="relay-title">Relay 1</div>
-                <div class="relay-state" id="text-relay1">--</div>
+                <div class="relay-title">Outlet 1 · CO₂ + VOC</div>
+                <div class="relay-state" id="text-relay1">Reported: Unknown</div>
+                <p class="control-feedback" id="feedback-relay1" role="status" aria-live="polite"></p>
               </div>
             </div>
             <label class="switch">
-              <input type="checkbox" id="switch-relay1" disabled>
+              <input type="checkbox" id="switch-relay1" aria-label="Request Outlet 1 power in manual mode" aria-describedby="manual-control-help text-relay1 feedback-relay1" disabled>
               <span class="slider"></span>
             </label>
           </div>
@@ -110,17 +111,20 @@
             <div class="relay-info">
               <div class="card-icon"><i data-lucide="plug"></i></div>
               <div>
-                <div class="relay-title">Relay 2</div>
-                <div class="relay-state" id="text-relay2">--</div>
+                <div class="relay-title">Outlet 2 · PM2.5</div>
+                <div class="relay-state" id="text-relay2">Reported: Unknown</div>
+                <p class="control-feedback" id="feedback-relay2" role="status" aria-live="polite"></p>
               </div>
             </div>
             <label class="switch">
-              <input type="checkbox" id="switch-relay2" disabled>
+              <input type="checkbox" id="switch-relay2" aria-label="Request Outlet 2 power in manual mode" aria-describedby="manual-control-help text-relay2 feedback-relay2" disabled>
               <span class="slider"></span>
             </label>
           </div>
 
         </div>
+        <p class="control-helper" id="manual-control-help">In manual mode, the switches show saved requests. Reported ON/OFF values come only from AeroPlug. AeroCube reads settings, calculates outputs, and sends commands approximately every five seconds, plus network time.</p>
+        <p class="control-feedback" id="reported-state-feedback" role="status" aria-live="polite"></p>
       </div>
     </section>
   </main>

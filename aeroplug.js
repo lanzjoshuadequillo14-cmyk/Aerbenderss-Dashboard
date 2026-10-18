@@ -21,8 +21,9 @@ document.getElementById('btn-logout')?.addEventListener('click', async (e) => {
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('sidebarOverlay');
+const savedAeroCubeId = localStorage.getItem('aerocube-id') || BASE_PATH.split('/').pop();
 const aeroplugPath = '/aeroplugs/' + (localStorage.getItem('aeroplug-id') || 'plug_01');
-const controlsPath = BASE_PATH + '/controls';
+const controlsPath = '/Aerocubes/' + savedAeroCubeId + '/controls';
 
 menuToggle?.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); });
 overlay?.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
@@ -39,6 +40,61 @@ const manualModeInfo = document.getElementById('manual-mode-info');
 const aeroplugIndicator = document.getElementById('aeroplug-indicator');
 const aeroplugOnlineText = document.getElementById('aeroplug-online-text');
 const aeroplugLastSeen = document.getElementById('aeroplug-last-seen');
+const modeFeedback = document.getElementById('mode-feedback');
+const reportedStateFeedback = document.getElementById('reported-state-feedback');
+const relayFeedback = {
+  manualRelay1: document.getElementById('feedback-relay1'),
+  manualRelay2: document.getElementById('feedback-relay2')
+};
+
+let controlsLoaded = false;
+let modePending = false;
+const pendingRelays = new Set();
+const savedControls = { isAutoMode: null, manualRelay1: null, manualRelay2: null };
+const reportedRelays = { relay1: null, relay2: null };
+
+function setFeedback(element, message, state = '') {
+  if (!element) return;
+  element.textContent = message;
+  element.className = 'control-feedback' + (state ? ' ' + state : '');
+}
+
+function renderControls() {
+  const automatic = savedControls.isAutoMode === true;
+  const manual = savedControls.isAutoMode === false;
+  const busy = modePending || pendingRelays.size > 0;
+
+  btnAuto?.classList.toggle('active', automatic);
+  btnManual?.classList.toggle('active', manual);
+  btnAuto?.setAttribute('aria-pressed', String(automatic));
+  btnManual?.setAttribute('aria-pressed', String(manual));
+  if (btnAuto) btnAuto.disabled = !controlsLoaded || busy;
+  if (btnManual) btnManual.disabled = !controlsLoaded || busy;
+  autoModeInfo?.classList.toggle('hidden', !automatic);
+  manualModeInfo?.classList.toggle('hidden', !manual);
+
+  for (const [input, request, relay] of [
+    [switchRelay1, 'manualRelay1', 'relay1'],
+    [switchRelay2, 'manualRelay2', 'relay2']
+  ]) {
+    if (!input) continue;
+    const value = manual ? savedControls[request] : reportedRelays[relay];
+    input.checked = value === true;
+    input.indeterminate = typeof value !== 'boolean';
+    input.disabled = !controlsLoaded || !manual || busy;
+  }
+}
+
+function renderReportedState() {
+  for (const [element, relay] of [[textRelay1, 'relay1'], [textRelay2, 'relay2']]) {
+    if (!element) continue;
+    const value = reportedRelays[relay];
+    element.innerText = 'Reported: ' + (typeof value === 'boolean' ? (value ? 'ON' : 'OFF') : 'Unknown');
+  }
+  renderControls();
+}
+
+renderControls();
 
 // --- LISTEN FOR AEROPLUG STATUS ---
 let aeroplugLastSeenTimestamp = null;
@@ -78,61 +134,83 @@ setInterval(() => updateAeroplugStatus(aeroplugLastSeenTimestamp), 15000);
 
 // --- LISTEN FOR AEROPLUG RELAY STATE ---
 onValue(ref(db, aeroplugPath + '/state'), (snapshot) => {
-  const state = snapshot.val();
-  if (!state) return;
-  if (state.relay1 !== undefined && switchRelay1) {
-    switchRelay1.checked = state.relay1;
-    textRelay1.innerText = state.relay1 ? 'ON' : 'OFF';
+  const state = snapshot.val() || {};
+  for (const relay of ['relay1', 'relay2']) {
+    reportedRelays[relay] = typeof state[relay] === 'boolean' ? state[relay] : null;
   }
-  if (state.relay2 !== undefined && switchRelay2) {
-    switchRelay2.checked = state.relay2;
-    textRelay2.innerText = state.relay2 ? 'ON' : 'OFF';
-  }
+  setFeedback(reportedStateFeedback, '');
+  renderReportedState();
+}, (error) => {
+  reportedRelays.relay1 = null;
+  reportedRelays.relay2 = null;
+  renderReportedState();
+  setFeedback(reportedStateFeedback, 'Could not load AeroPlug\'s reported outlet states: ' + error.message, 'error');
 });
 
 // --- LISTEN FOR CONTROLS ---
 onValue(ref(db, controlsPath), (snapshot) => {
-  const controls = snapshot.val();
-  if (!controls) return;
-
-  if (controls.manualRelay1 !== undefined && switchRelay1) {
-    switchRelay1.checked = controls.manualRelay1;
+  const controls = snapshot.val() || {};
+  controlsLoaded = true;
+  for (const key of ['isAutoMode', 'manualRelay1', 'manualRelay2']) {
+    savedControls[key] = typeof controls[key] === 'boolean' ? controls[key] : null;
   }
-  if (controls.manualRelay2 !== undefined && switchRelay2) {
-    switchRelay2.checked = controls.manualRelay2;
+  if (savedControls.isAutoMode === null) {
+    setFeedback(modeFeedback, 'Choose an operating mode to enable manual requests.');
+  } else if (!modePending && !modeFeedback?.classList.contains('success') && !modeFeedback?.classList.contains('error')) {
+    setFeedback(modeFeedback, '');
   }
-
-  if (controls.isAutoMode !== undefined) {
-    if (controls.isAutoMode) {
-      btnAuto?.classList.add('active');
-      btnManual?.classList.remove('active');
-      if (switchRelay1) switchRelay1.disabled = true;
-      if (switchRelay2) switchRelay2.disabled = true;
-      autoModeInfo?.classList.remove('hidden');
-      manualModeInfo?.classList.add('hidden');
-    } else {
-      btnManual?.classList.add('active');
-      btnAuto?.classList.remove('active');
-      if (switchRelay1) switchRelay1.disabled = false;
-      if (switchRelay2) switchRelay2.disabled = false;
-      autoModeInfo?.classList.add('hidden');
-      manualModeInfo?.classList.remove('hidden');
-    }
-  }
-
+  renderControls();
+}, (error) => {
+  controlsLoaded = false;
+  savedControls.isAutoMode = null;
+  renderControls();
+  setFeedback(modeFeedback, 'Could not load the saved operating mode: ' + error.message, 'error');
 });
 
-// --- WRITE CONTROLS ---
-function updateControls(partialState) {
-  return update(ref(db, controlsPath), partialState)
-    .catch((error) => console.error('Failed to update controls:', error));
+// AeroCube applies these requests; only AeroPlug's reported state confirms an output.
+async function updateMode(isAutoMode) {
+  if (typeof isAutoMode !== 'boolean' || !controlsLoaded || modePending || pendingRelays.size || savedControls.isAutoMode === isAutoMode) return;
+  const previousMode = savedControls.isAutoMode;
+  modePending = true;
+  setFeedback(modeFeedback, 'Saving operating mode to Firebase…');
+  renderControls();
+  try {
+    await update(ref(db, controlsPath), { isAutoMode });
+    savedControls.isAutoMode = isAutoMode;
+    setFeedback(modeFeedback, 'Operating mode saved to Firebase. AeroCube will apply it on its next cycle.', 'success');
+  } catch (error) {
+    savedControls.isAutoMode = previousMode;
+    setFeedback(modeFeedback, 'Could not save the operating mode: ' + error.message, 'error');
+  } finally {
+    modePending = false;
+    renderControls();
+  }
 }
 
-function updateManualRelay(relay, value) {
-  return updateControls({ [relay]: value });
+async function updateManualRelay(relay, value) {
+  if (!Object.hasOwn(relayFeedback, relay) || typeof value !== 'boolean' ||
+      !controlsLoaded || savedControls.isAutoMode !== false || modePending || pendingRelays.size) {
+    renderControls();
+    return;
+  }
+  const previousRequest = savedControls[relay];
+  pendingRelays.add(relay);
+  setFeedback(relayFeedback[relay], 'Saving manual request to Firebase…');
+  renderControls();
+  try {
+    await update(ref(db, controlsPath), { [relay]: value });
+    savedControls[relay] = value;
+    setFeedback(relayFeedback[relay], 'Manual request saved to Firebase. Check the reported state for the outlet response.', 'success');
+  } catch (error) {
+    savedControls[relay] = previousRequest;
+    setFeedback(relayFeedback[relay], 'Could not save the manual request: ' + error.message, 'error');
+  } finally {
+    pendingRelays.delete(relay);
+    renderControls();
+  }
 }
 
-btnAuto?.addEventListener('click', () => updateControls({ isAutoMode: true }));
-btnManual?.addEventListener('click', () => updateControls({ isAutoMode: false }));
+btnAuto?.addEventListener('click', () => updateMode(true));
+btnManual?.addEventListener('click', () => updateMode(false));
 switchRelay1?.addEventListener('change', (e) => updateManualRelay('manualRelay1', e.target.checked));
 switchRelay2?.addEventListener('change', (e) => updateManualRelay('manualRelay2', e.target.checked));

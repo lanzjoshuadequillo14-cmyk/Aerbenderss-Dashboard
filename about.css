@@ -1,7 +1,7 @@
 /* =========================================================
    1. BASE RESET & SYSTEM VARIABLES
 ========================================================= */
-*, *::before, *::after {
+* {
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
   margin: 0;
@@ -28,7 +28,6 @@ body {
   display: flex;
   min-height: 100vh;
   overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
 }
 
 /* =========================================================
@@ -209,31 +208,18 @@ body {
 }
 
 /* =========================================================
-   4. CARDS & GAUGE CONTAINMENT FIX (iOS / SAFARI OPTIMIZED)
+   4. CARDS & ABOUT PAGE COMPONENTS
 ========================================================= */
 .card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 100%;
-  box-sizing: border-box;
-  overflow: hidden !important; /* CRITICAL: Clips elements trying to spill out on iOS */
-  contain: paint; /* Performance & strict layer containment */
-  transform: translateZ(0); /* Hardware acceleration fix for Safari webkit rendering */
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .card-header {
@@ -245,7 +231,7 @@ body {
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .card-icon {
@@ -259,113 +245,6 @@ body {
   color: var(--accent-blue);
 }
 
-/* --- CO2 Gauge Specific Fixes --- */
-.co2-gauge-widget {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  margin-top: 6px;
-  box-sizing: border-box;
-}
-
-.co2-gauge-chart {
-  position: relative;
-  width: 100%;
-  height: 20px;
-  max-height: 20px;
-  overflow: hidden;
-  border-radius: 6px;
-}
-
-.co2-gauge-chart canvas {
-  display: block;
-  width: 100% !important;
-  height: 20px !important;
-  max-height: 20px !important;
-}
-
-.co2-gauge-captions {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.co2-gauge-badge {
-  align-self: flex-start;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--accent-green);
-}
-
-/* --- VOC Gauge Specific Fixes --- */
-.voc-gauge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  gap: 6px;
-  box-sizing: border-box;
-}
-
-.voc-gauge-chart {
-  position: relative;
-  width: 100%;
-  max-width: 180px;
-  height: 90px; /* Locked height boundary so it doesn't bleed down */
-  margin: 0 auto;
-  overflow: hidden;
-}
-
-.voc-gauge-chart canvas {
-  display: block;
-  width: 100% !important;
-  height: 90px !important;
-}
-
-.voc-gauge-readout {
-  position: absolute;
-  bottom: 0px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-}
-
-.voc-gauge-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1;
-}
-
-.voc-gauge-unit {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.voc-gauge-scale {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 160px;
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.voc-status-badge {
-  font-size: 10px;
-  padding: 3px 10px;
-  border-radius: 10px;
-  background: rgba(100, 116, 139, 0.15);
-  color: var(--text-sub);
-  font-weight: 600;
-}
-
-/* About & Details Grid */
 .about-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
