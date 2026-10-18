@@ -1441,6 +1441,14 @@ input:disabled + .slider {
   box-shadow: 0 0 8px color-mix(in srgb, var(--slider-color, var(--accent-green)) 40%, transparent);
 }
 
+.outlet-select-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
 .t-recommendation {
   background: rgba(56, 189, 248, 0.05);
   border-left: 2px solid var(--accent-blue);
@@ -1455,77 +1463,15 @@ input:disabled + .slider {
   font-weight: 600;
 }
 
-.automation-notice {
-  color: var(--text-sub);
-  font-size: 12px;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.automation-notice a { color: var(--accent-blue); }
-
-.outlet-assignment {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  color: var(--text-sub);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.outlet-assignment strong { color: var(--accent-blue); }
-
-.std-panel { display: flex; flex-direction: column; gap: 8px; }
-.std-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.std-input { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-sub); }
-.std-input input {
-  min-width: 0;
+.outlet-select {
+  background: var(--bg-inner);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: #ffffff;
+  font-size: 13px;
+  margin-top: 6px;
+  padding: 8px 10px;
   width: 100%;
-  background: var(--bg-main);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-main);
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.std-input input:focus { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
-.std-input input[aria-invalid="true"] { border-color: var(--accent-red); }
-.std-reset {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-sub);
-  font-size: 11px;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.std-reset:hover { border-color: var(--accent-blue); color: var(--text-main); }
-.std-unsaved { font-size: 11px; color: var(--accent-yellow); }
-.threshold-release, .control-helper, .control-feedback {
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.control-feedback { min-height: 18px; }
-.control-feedback.success { color: var(--accent-green); }
-.control-feedback.error { color: var(--accent-red); }
-.threshold-slider-unset { opacity: 0.4; }
-.threshold-card { min-width: 0; }
-.threshold-card .t-value { overflow-wrap: anywhere; }
-.threshold-card .threshold-save { padding: 8px 12px; font-size: 12px; }
-.threshold-actions { flex-wrap: wrap; }
-.relay-controls { display: grid; gap: 12px; }
-.relay-controls .relay-item { gap: 12px; }
-.relay-controls .relay-info, .relay-controls .relay-info > div { min-width: 0; }
-.relay-controls .card-icon { flex-shrink: 0; }
-.switch input:focus-visible + .slider { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
-.switch input:indeterminate + .slider:before { transform: translateX(10px); }
-.std-panel button:disabled, .threshold-actions button:disabled,
-.mode-toggle-group button:disabled { opacity: 0.6; cursor: wait; }
-
-@media screen and (min-width: 769px) and (max-width: 1100px) {
-  .threshold-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .btn-save {
@@ -2819,3 +2765,120 @@ input:disabled + .slider {
     font-size: 13px;
   }
 }
+/* =========================================================
+   COMPATIBILITY PATCH  –  paste at the VERY BOTTOM of your CSS
+   Does not change the design. Only fixes layout bugs and
+   adds iOS / Android compatibility.
+========================================================= */
+
+/* ---------- 1. FIX: CO2 bar + VOC gauge overflowing their cards ----------
+   Canvas is taken out of the layout flow so it can't collapse the card. */
+
+.co2-gauge-widget,
+.voc-gauge {
+  flex: 0 0 auto;
+  min-height: auto;
+}
+
+.co2-gauge-chart canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 2:1 ratio box that works on every iOS/Android version
+   (replaces aspect-ratio, which older iOS ignores) */
+.voc-gauge-chart {
+  aspect-ratio: auto;
+}
+
+.voc-gauge-chart::before {
+  content: '';
+  display: block;
+  padding-top: 50%;
+}
+
+.voc-gauge-chart canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.voc-gauge-readout {
+  bottom: 0;
+}
+
+.voc-gauge {
+  padding-bottom: 6px;
+}
+
+/* ---------- 2. Prevent grid/flex children from overflowing sideways ---------- */
+
+.card,
+.main-content,
+.device-status-left,
+.insight-desc {
+  min-width: 0;
+}
+
+.metrics-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1200px) {
+  .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 3. Text sizing / tap behaviour (iOS Safari + Android Chrome) ---------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  touch-action: manipulation;
+}
+
+/* ---------- 4. Real screen height on mobile (address bar on iOS/Android) ---------- */
+
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+
+  .sidebar,
+  .sidebar-overlay,
+  .modal-overlay {
+    height: 100dvh;
+  }
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.modal-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
