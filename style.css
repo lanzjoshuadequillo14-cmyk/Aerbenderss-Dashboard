@@ -2845,71 +2845,50 @@ input:disabled + .slider {
    FIX: OVERLAPPING CARDS ON MOBILE
 ========================================================= */
 
-/* Let grid and cards grow with their content instead of collapsing */
+/* =========================================================
+   FIX: EQUAL CARD HEIGHTS (PM2.5 / CO2 / VOC / Environment)
+========================================================= */
+
+/* Stretch every card in a row to the height of the tallest one */
 .metrics-grid {
-  flex-shrink: 0;
-  align-items: start;
+  align-items: stretch;
 }
 
-.card,
-.pm-detail-card {
-  flex-shrink: 0;
-  height: auto;
-  min-width: 0;
-  min-height: 150px;
-  overflow: hidden;      /* keeps canvases inside the card's rounded border */
+.metrics-grid > .card {
+  height: 100%;
 }
 
-/* CO2 gauge: reserve real height so the bar stays inside the card */
-.co2-gauge-widget {
-  flex-shrink: 0;
-  margin-top: 8px;
-  padding-top: 8px;
-  width: 100%;
+/* Let each card's content fill the card so gauges sit at the bottom */
+.card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.co2-gauge-chart {
-  flex-shrink: 0;
-  height: 54px;
-  min-height: 54px;
-  overflow: hidden;
-}
-
-/* VOC gauge: stop it from collapsing to 0px height */
-.voc-gauge {
-  flex: 0 0 auto;        /* was flex: 1 + min-height: 0 */
-  min-height: auto;
-  width: 100%;
-}
-
-.voc-gauge-chart {
-  flex-shrink: 0;
-  width: 100%;
-  max-width: 220px;
-  aspect-ratio: 2 / 1;
-  height: auto;
-  min-height: 110px;
-  margin: 4px auto 0;
-}
-
-.voc-gauge-chart canvas {
-  position: absolute;
-  inset: 0;
-}
-
-/* Reserve space for the number under the arc so it doesn't hit the scale */
-.voc-gauge-scale {
-  margin-top: 6px;
-}
-
-.voc-status-badge {
-  flex-shrink: 0;
+/* Keep the CO2 status pill under the number, not pushed to the bottom */
+.card-body > .card-status {
   margin-top: 4px;
 }
 
-/* Disable hover lift on touch devices (it can cause layout jumps) */
-@media (hover: none) {
-  .card:hover {
-    transform: none;
-  }
+/* CO2 gauge sits at the bottom of the card */
+.co2-gauge-widget {
+  margin-top: auto;
+}
+
+/* VOC gauge uses the extra height instead of leaving blank space */
+.voc-gauge {
+  flex: 1 1 auto;
+  justify-content: space-between;
+}
+
+/* Environment boxes fill the card height */
+#card-environment-detail .pm-mini-grid {
+  flex: 1;
+  align-content: stretch;
+}
+
+/* The full-width PM detail card should keep its own height */
+#card-pm-detail {
+  height: auto;
 }
