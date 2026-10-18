@@ -2819,3 +2819,26 @@ input:disabled + .slider {
     font-size: 13px;
   }
 }
+/* ---------- 4. Real screen height on mobile (address bar on iOS/Android) ---------- */
+
+@supports (height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+
+  .sidebar,
+  .sidebar-overlay,
+  .modal-overlay {
+    height: 100dvh;
+  }
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.modal-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
