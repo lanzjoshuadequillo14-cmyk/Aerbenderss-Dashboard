@@ -78,12 +78,21 @@
         <h1>AeroCube Dashboard</h1>
         <p class="header-subtitle">Indoor Air Quality Monitoring</p>
       </div>
+
       <div class="header-badges">
-        <button class="notification-button" id="btn-notifications" type="button">
-          <i data-lucide="bell"></i>
-          <span>Enable Notifications</span>
-        </button>
-      </div>
+  <div class="dashboard-clock" id="dashboard-clock" aria-live="off">
+    <i data-lucide="clock"></i>
+    <div>
+      <div class="clock-time" id="clock-time">--:--:--</div>
+      <div class="clock-date" id="clock-date">--</div>
+    </div>
+  </div>
+  <button class="notification-button" id="btn-notifications" type="button">
+    <i data-lucide="bell"></i>
+    <span>Enable Notifications</span>
+  </button>
+</div>
+
     </header>
     <section class="device-status-bar" id="device-status-bar">
       <div class="device-status-left">

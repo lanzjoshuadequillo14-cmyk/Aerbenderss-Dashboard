@@ -1,12 +1,24 @@
+// =========================================================
+// IMPORTS
+// Firebase config, sensor status helpers, and Firebase SDK functions
+// =========================================================
 import{db,auth,BASE_PATH}from'./firebase.js';
 import { getFirmwareStatus, describeFirmwareStatus, escapeHtml } from './sensor-status.js';
 import{ref,onValue,get}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import{signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// =========================================================
+// AUTHENTICATION
+// Redirect to the registration page when the user is not signed in
+// =========================================================
 onAuthStateChanged(auth,user=>{
 if(!user)window.location.href='Registration.html';
 });
 
+// =========================================================
+// LOGOUT BUTTON
+// Signs the user out and sends them back to the registration page
+// =========================================================
 document.getElementById('btn-logout')?.addEventListener('click',async e=>{
 e.preventDefault();
 try{
@@ -17,6 +29,10 @@ console.error("Logout error:",err);
 }
 });
 
+// =========================================================
+// SIDEBAR + DEVICE SELECTOR SETUP
+// Grabs sidebar elements and loads the saved AeroCube ID (or the default one)
+// =========================================================
 const menuToggle=document.getElementById('menuToggle');
 const sidebar=document.getElementById('sidebar');
 const overlay=document.getElementById('sidebarOverlay');
@@ -26,8 +42,10 @@ const deviceSelectorForm=document.getElementById('device-selector-form');
 const aerocubeIdInput=document.getElementById('aerocube-id');
 const deviceName=document.getElementById('device-name');
 
+// Show the saved ID in the input field
 if(aerocubeIdInput)aerocubeIdInput.value=savedAeroCubeId;
 
+// Save a new AeroCube ID (letters, numbers, _ and - only) and reload the page
 deviceSelectorForm?.addEventListener('submit',e=>{
 e.preventDefault();
 const cubeId=aerocubeIdInput.value.trim();
@@ -37,6 +55,10 @@ localStorage.setItem('aerocube-id',cubeId);
 window.location.reload();
 });
 
+// =========================================================
+// MOBILE MENU BEHAVIOR
+// Open/close the sidebar via button, overlay, link click, Escape key, or resize
+// =========================================================
 function toggleMenu(){
 sidebar?.classList.toggle('open');
 overlay?.classList.toggle('active');
@@ -45,20 +67,27 @@ overlay?.classList.toggle('active');
 menuToggle?.addEventListener('click',toggleMenu);
 overlay?.addEventListener('click',toggleMenu);
 
+// Close the menu after tapping a nav link
 sidebar?.querySelectorAll('a.nav-item').forEach(link=>{
 link.addEventListener('click',()=>{
 if(sidebar.classList.contains('open'))toggleMenu();
 });
 });
 
+// Close the menu with the Escape key
 document.addEventListener('keydown',e=>{
 if(e.key==='Escape'&&sidebar?.classList.contains('open'))toggleMenu();
 });
 
+// Close the menu when the window grows to desktop width
 window.addEventListener('resize',()=>{
 if(window.innerWidth>768&&sidebar?.classList.contains('open'))toggleMenu();
 });
 
+// =========================================================
+// DOM REFERENCES FOR SENSOR READINGS
+// Elements that display CO2, PM, VOC, temperature, humidity and statuses
+// =========================================================
 const valCo2=document.getElementById('val-co2');
 const co2GaugeCanvas=document.getElementById('co2-gauge-canvas');
 const co2GaugeStatus=document.getElementById('co2-gauge-status');
@@ -78,12 +107,17 @@ const statusVoc=document.getElementById('status-voc');
 let vocGauge=null;
 let co2Gauge=null;
 const CO2_GAUGE_MAX=3000;
+// Chart.js annotation plugin (draws the vertical line on the CO2 bar)
 const chartAnnotationPlugin=window['chartjs-plugin-annotation'];
 
 if(chartAnnotationPlugin&&typeof Chart!=='undefined'){
 Chart.register(chartAnnotationPlugin);
 }
 
+// =========================================================
+// CO2 GAUGE - POINTER PLUGIN
+// Draws the small white triangle above the bar at the current CO2 value
+// =========================================================
 const co2GaugePointerPlugin={
 id:'co2GaugePointer',
 afterDraw(chart){
@@ -108,6 +142,10 @@ ctx.restore();
 }
 };
 
+// =========================================================
+// CO2 GAUGE - CREATE CHART
+// Horizontal stacked bar: green (harmless), yellow (elevated), red (unacceptable)
+// =========================================================
 function createCO2Gauge(){
 if(!co2GaugeCanvas||typeof Chart==='undefined'||!chartAnnotationPlugin)return;
 co2Gauge=new Chart(co2GaugeCanvas,{
@@ -147,6 +185,11 @@ plugins:[co2GaugePointerPlugin]
 });
 }
 
+// =========================================================
+// CO2 GAUGE - UPDATE
+// Updates the status badge (<=1000 harmless, <=2000 elevated, else unacceptable)
+// and moves the marker line/pointer on the bar
+// =========================================================
 function updateCO2Gauge(newValue){
 const value=toNum(newValue);
 if(co2GaugeStatus){
@@ -174,10 +217,17 @@ co2Gauge.update('none');
 }
 }
 
+// Expose globally and build the CO2 gauge on load
 window.updateCO2Gauge=updateCO2Gauge;
 createCO2Gauge();
+
+// =========================================================
+// VOC GAUGE - NEEDLE PLUGIN
+// Applies the yellow-to-red gradient and draws the triangular needle
+// =========================================================
 const vocGaugeNeedlePlugin={
 id:'vocGaugeNeedle',
+// Paint the "Deterioration" arc with a gradient before drawing
 beforeDatasetsDraw(chart){
 const {ctx,chartArea}=chart;
 const meta=chart.getDatasetMeta(0);
@@ -188,6 +238,7 @@ arc.options.backgroundColor.addColorStop(0,'#facc15');
 arc.options.backgroundColor.addColorStop(.5,'#f97316');
 arc.options.backgroundColor.addColorStop(1,'#ef4444');
 },
+// Draw the needle at the angle that matches the current VOC value (0-500)
 afterDatasetsDraw(chart){
 const value=Number(chart.$vocValue);
 if(!Number.isFinite(value))return;
@@ -225,6 +276,10 @@ ctx.restore();
 }
 };
 
+// =========================================================
+// VOC GAUGE - CREATE CHART
+// Half-doughnut: 0-100 baseline (green), 100-500 deterioration (gradient)
+// =========================================================
 function createVOCGauge(){
 if(!vocGaugeCanvas||typeof Chart==='undefined')return;
 vocGauge=new Chart(vocGaugeCanvas,{
@@ -248,6 +303,11 @@ plugins:[vocGaugeNeedlePlugin]
 });
 }
 
+// =========================================================
+// VOC GAUGE - UPDATE
+// Updates the number, the status badge (<100 improvement, =100 baseline,
+// >100 deterioration), and redraws the needle
+// =========================================================
 function updateVOCGauge(newValue){
 const value=toNum(newValue);
 if(valVoc){
@@ -273,9 +333,15 @@ vocGauge.update('none');
 }
 }
 
+// Expose globally and build the VOC gauge on load
 window.updateVOCGauge=updateVOCGauge;
 
 createVOCGauge();
+
+// =========================================================
+// STATUS ELEMENT MAPS + DEVICE STATUS ELEMENTS
+// Links each metric to its status pill and card, plus connection indicators
+// =========================================================
 const sensorStatusElements={
 co2:statusCo2,
 voc:statusVoc,
@@ -293,6 +359,10 @@ const recContent=document.getElementById('recommendations-content');
 const insightText=document.getElementById('insight-text');
 
 
+// =========================================================
+// APP STATE
+// Tracks notification states, connection state, and latest data
+// =========================================================
 const notificationStates={};
 let previousConnectionState=null;
 let firstReadingHandled=false;
@@ -300,6 +370,10 @@ let latestTelemetry=null;
 let latestPm25Avg24h=null;
 let pm25HistoryReady=false;
 
+// =========================================================
+// NOTIFICATION BUTTON
+// Updates the button label/style based on browser notification permission
+// =========================================================
 function updateNotificationButton(){
 if(!notificationButton||!('Notification'in window))return;
 if(Notification.permission==='granted'){
@@ -314,6 +388,10 @@ notificationButton.innerHTML='<i data-lucide="bell-off"></i><span>Notifications 
 if(window.lucide)lucide.createIcons();
 }
 
+// =========================================================
+// ALERT SETTINGS
+// Reminder timing, value-change thresholds, and which tones trigger alerts
+// =========================================================
 const ALERT_REMINDER_MS=5*60*1000;
 const ALERT_VALUE_INTERVALS={
 co2:100,
@@ -325,12 +403,17 @@ const ALERT_ON_FIRST_NORMAL=false;
 const alertLastSent={};
 const alertLastValue={};
 
+// Display names used inside alerts
 const ALERT_INFO={
 co2:{name:'CO₂'},
 voc:{name:'VOC Index'},
 pm25avg:{name:'24-hour average PM2.5'}
 };
 
+// =========================================================
+// ALERT MESSAGE BUILDERS
+// Finds the recommendation for a status and builds the notification text
+// =========================================================
 function getAdvice(metricKey,status){
 const group=metricKey==='pm25avg'?'pm25':metricKey;
 const recommendationKey=contentStatusKey(metricKey,status);
@@ -349,6 +432,10 @@ return advice
 :reading;
 }
 
+// =========================================================
+// TOAST (IN-PAGE) NOTIFICATIONS
+// Creates a popup message in the top-right corner that auto-closes after 9s
+// =========================================================
 function showToast(title,body,tone='critical'){
 let stack=document.getElementById('toast-stack');
 if(!stack){
@@ -372,6 +459,10 @@ toast.addEventListener('click',close);
 setTimeout(close,9000);
 }
 
+// =========================================================
+// SYSTEM (BROWSER) NOTIFICATIONS
+// Uses the service worker when available, otherwise a regular Notification
+// =========================================================
 async function showSystemNotification(title,body,tag){
 if(!('Notification'in window)||Notification.permission!=='granted')return;
 const options={
@@ -398,12 +489,20 @@ console.warn('Notification failed:',err);
 }
 }
 
+// =========================================================
+// SEND NOTIFICATION
+// Shows a toast, vibrates on critical alerts, and sends a system notification
+// =========================================================
 async function sendNotification(title,body,tag='aerocube-alert',tone='critical'){
 showToast(title,body,tone);
 if(tone==='critical'&&navigator.vibrate)navigator.vibrate([200,100,200]);
 await showSystemNotification(title,body,tag);
 }
 
+// =========================================================
+// NOTIFICATION BUTTON CLICK
+// Requests permission, shows a test notification, or explains how to unblock
+// =========================================================
 notificationButton?.addEventListener('click',async()=>{
 if(!('Notification'in window)){
 window.alert('This browser does not support notifications. On iPhone, add the app to your Home Screen first (iOS 16.4+).');
@@ -425,6 +524,10 @@ window.alert('Notifications are blocked. Allow them in your browser or site sett
 
 updateNotificationButton();
 
+// =========================================================
+// UI HELPERS
+// Status pills, card border colors, and reading rendering
+// =========================================================
 function setStatusPill(element,state,label){
 if(!element)return;
 element.className='card-status '+(state||'');
@@ -445,6 +548,10 @@ const suffix=unit?' <span>'+unit+'</span>':'';
 element.innerHTML=(number===undefined?'--':fmt(number,digits))+suffix;
 }
 
+// =========================================================
+// RENDER TELEMETRY
+// Writes every sensor value from Firebase onto the dashboard
+// =========================================================
 function renderTelemetryReadings(data){
 renderReading(valCo2,data.co2,'ppm',0);
 updateCO2Gauge(data.co2);
@@ -458,6 +565,10 @@ renderReading(valPm4,data.pm?.pm4p0,'µg/m³');
 renderReading(valPm10,data.pm?.pm10p0,'µg/m³');
 }
 
+// =========================================================
+// UPDATE SENSOR STATUSES
+// Sets each status pill and card border color from firmware statuses
+// =========================================================
 function updateSensorStatuses(data){
 Object.entries(sensorStatusElements).forEach(([metric,element])=>{
 if(metric==='voc'){
@@ -477,6 +588,10 @@ if(sensorStatusCards[metric])setCardVisual(sensorStatusCards[metric],status.tone
 });
 }
 
+// =========================================================
+// DEVICE ONLINE CHECK + TIME FORMATTING
+// Device is online if data arrived within the last 60 seconds
+// =========================================================
 function checkDeviceOnline(lastSeen){
 if(!lastSeen)return false;
 return Math.floor((Date.now()-lastSeen)/1000)<60;
@@ -491,6 +606,10 @@ if(diff<86400)return Math.floor(diff/3600)+' hours ago';
 return Math.floor(diff/86400)+' days ago';
 }
 
+// =========================================================
+// CLEAR STALE DATA
+// Resets readings, statuses and messages when the device goes offline
+// =========================================================
 function clearStaleSensorData(){
 firstReadingHandled=false;
 Object.keys(notificationStates).forEach(key=>{notificationStates[key]=null;});
@@ -509,6 +628,10 @@ if(recContent)recContent.innerHTML='<div>Waiting for telemetry data...</div>';
 }
 }
 
+// =========================================================
+// PM2.5 24-HOUR AVERAGE STATUS
+// Compares the rolling average to the WHO 24-hour guideline (15 µg/m³)
+// =========================================================
 function getPm25AverageStatus(){
 if(!pm25HistoryReady){
 return describeFirmwareStatus('pm25avg',null,'Collecting Data');
@@ -520,6 +643,10 @@ withinGuideline?'Within WHO 24-hour AQG':'Above WHO 24-hour AQG'
 );
 }
 
+// =========================================================
+// DEVICE CONNECTION STATUS
+// Updates the connected/disconnected UI and alerts when the state changes
+// =========================================================
 function updateDeviceConnectionStatus(lastSeen){
 const online=checkDeviceOnline(lastSeen);
 deviceLastSeen.innerText=lastSeen?'Last data received: '+timeAgo(lastSeen):'Last data received: --';
@@ -538,6 +665,11 @@ previousConnectionState=online;
 if(!online)clearStaleSensorData();
 }
 
+// =========================================================
+// METRIC STATE NOTIFICATIONS
+// Sends an alert when a status changes, when the value moves enough,
+// or as a reminder for critical states
+// =========================================================
 function notifyMetricState(metricKey,status,value){
 const info=ALERT_INFO[metricKey];
 if(!info)return;
@@ -547,6 +679,7 @@ const numericValue=Number.parseFloat(String(value));
 notificationStates[metricKey]=status.raw?status:null;
 if(!status.tone)return;
 const now=Date.now();
+// Same status as before: only alert on a big value change or critical reminder
 if(prev?.label===status.label){
 const valueInterval=ALERT_VALUE_INTERVALS[metricKey];
 const valueChanged=Number.isFinite(numericValue)&&
@@ -565,6 +698,7 @@ notificationBody(metricKey,status,value),
 }
 return;
 }
+// Status changed: alert (skips the very first "normal" unless enabled)
 if(Number.isFinite(numericValue))alertLastValue[metricKey]=numericValue;
 if(!prev&&status.tone==='normal'&&!ALERT_ON_FIRST_NORMAL)return;
 if(!ALERT_TONES[status.tone])return;
@@ -576,6 +710,10 @@ notificationBody(metricKey,status,value),
 );
 }
 
+// =========================================================
+// FIRST READING SUMMARY
+// One-time notification when CO2 and VOC are both normal on first load
+// =========================================================
 function announceFirstReading(){
 if(firstReadingHandled)return;
 const statuses=['co2','voc'].map(key=>notificationStates[key]);
@@ -589,6 +727,10 @@ sendNotification(
 );
 }
 
+// =========================================================
+// DEBUG HELPER
+// Run aeroTest('co2', 'Elevated', 1500) in the console to simulate an alert
+// =========================================================
 window.aeroTest=function(metric,status,value){
 if(!ALERT_INFO[metric]||typeof status!=='string'){
 console.log("Use: aeroTest('co2' | 'voc' | 'pm25avg', firmwareStatus, reading)");
@@ -599,9 +741,14 @@ notifyMetricState(metric,result,value??'--');
 console.log(metric,result.label,value);
 };
 
+// =========================================================
+// NUMBER FORMATTING + FIREBASE PUSH ID TIMESTAMPS
+// fmt rounds numbers; push IDs hide a timestamp in their first 8 characters
+// =========================================================
 const fmt=(v,d=1)=>typeof v==='number'?Number(v.toFixed(d)):v;
 const PUSH_CHARS='-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 
+// Decode the creation time from a Firebase push ID
 function getTimestampFromPushId(pushId){
 let time=0;
 for(let i=0;i<8;i++){
@@ -612,6 +759,7 @@ time=time*64+index;
 return time;
 }
 
+// Convert seconds/milliseconds/date strings into milliseconds
 function normalizeTimestamp(raw){
 if(raw===undefined||raw===null||raw==='')return 0;
 let value=Number(raw);
@@ -620,10 +768,15 @@ if(Number.isNaN(value)||value<=0)return 0;
 return value<1e12?value*1000:value;
 }
 
+// =========================================================
+// TREND SETTINGS + RECENT READINGS BUFFER
+// Keeps the last hour of readings in memory for trend/statistics
+// =========================================================
 const TREND_WINDOW_MIN=15;
 const KEEP_MS=60*60*1000;
 const PM25_WINDOW_MS=24*60*60*1000;
 
+// Minimum change over the trend window to count as "up" or "down"
 const TREND_MIN_CHANGE={
 co2:50,
 voc:10,
@@ -632,12 +785,14 @@ pm25:5
 
 let recentReadings=[];
 
+// Safely convert a value to a finite number (or undefined)
 function toNum(v){
 if(v===undefined||v===null||v==='')return undefined;
 const n=Number(v);
 return Number.isFinite(n)?n:undefined;
 }
 
+// Save a reading at most every 10 seconds and drop anything older than 1 hour
 function recordReading(data){
 const now=Date.now();
 const last=recentReadings[recentReadings.length-1];
@@ -651,6 +806,7 @@ pm25:toNum(data.pm?.pm2p5)
 recentReadings=recentReadings.filter(r=>r.t>=now-KEEP_MS);
 }
 
+// Fill the buffer with past readings from Firebase history
 function seedRecentReadings(seed){
 if(!seed.length)return;
 seed.sort((a,b)=>a.t-b.t);
@@ -658,11 +814,16 @@ const lastSeed=seed[seed.length-1].t;
 recentReadings=seed.concat(recentReadings.filter(r=>r.t>lastSeed)).filter(r=>r.t>=Date.now()-KEEP_MS);
 }
 
+// Get readings for one metric within the last `ms` milliseconds
 function seriesOf(key,ms){
 const cut=Date.now()-ms;
 return recentReadings.filter(r=>r.t>=cut&&typeof r[key]==='number');
 }
 
+// =========================================================
+// TREND CALCULATION
+// Linear regression over the last 15 minutes -> direction up/down/steady
+// =========================================================
 function trendOf(key){
 const pts=seriesOf(key,TREND_WINDOW_MIN*60000);
 if(pts.length<4)return null;
@@ -681,6 +842,10 @@ const dir=Math.abs(change)<TREND_MIN_CHANGE[key]?'steady':change>0?'up':'down';
 return{slope,change,dir};
 }
 
+// =========================================================
+// HOURLY STATISTICS
+// Average, max and min over the last hour (needs 5+ points over 5+ minutes)
+// =========================================================
 function hourStats(key){
 const pts=seriesOf(key,KEEP_MS);
 if(pts.length<5||pts[pts.length-1].t-pts[0].t<5*60000)return null;
@@ -692,6 +857,10 @@ min:Math.min(...vals)
 };
 }
 
+// =========================================================
+// PM2.5 HISTORY PARSING
+// Turns Firebase history into a sorted list of valid PM2.5 readings
+// =========================================================
 function getCurrentPm25Session(history,now){
 const readings=[];
 for(const key in history){
@@ -709,6 +878,11 @@ readings.sort((a,b)=>a.timestamp-b.timestamp);
 return readings;
 }
 
+// =========================================================
+// PM2.5 ROLLING 24-HOUR AVERAGE
+// Loads history, seeds the trend buffer, averages the last 24h, and
+// marks history "ready" only after a full 24 hours has been collected
+// =========================================================
 async function updatePm25Average24h(){
 if(!valPm25Avg24h)return;
 let message='Waiting for 24-hour PM2.5 history.';
@@ -719,6 +893,7 @@ const snapshot=await get(ref(db,aeroCubePath+'/history'));
 const now=Date.now();
 if(snapshot.exists()){
 const history=snapshot.val();
+// Seed the 1-hour buffer from history
 const seed=[];
 for(const key in history){
 const log=history[key];
@@ -730,8 +905,10 @@ seed.push({t:timestamp,co2:toNum(log.co2),voc:toNum(log.VOCidx),pm25:toNum(log.p
 }
 }
 seedRecentReadings(seed);
+// Keep only readings inside the 24-hour window
 const session=getCurrentPm25Session(history,now);
 const readings=session.filter(item=>item.timestamp>=now-PM25_WINDOW_MS);
+// Add the newest live reading if it is not in history yet
 const latestValue=toNum(latestTelemetry?.pm?.pm2p5);
 const latestTimestamp=normalizeTimestamp(latestTelemetry?.timestamp)||now;
 if(latestValue!==undefined&&latestTimestamp<=now&&latestTimestamp>=now-PM25_WINDOW_MS&&
@@ -739,6 +916,7 @@ if(latestValue!==undefined&&latestTimestamp<=now&&latestTimestamp>=now-PM25_WIND
 readings.push({timestamp:latestTimestamp,value:latestValue});
 }
 readings.sort((a,b)=>a.timestamp-b.timestamp);
+// Calculate the average and decide if 24 hours have been collected
 if(readings.length){
 average=readings.reduce((sum,item)=>sum+item.value,0)/readings.length;
 // The rolling window normally spans slightly less than 24 hours between samples.
@@ -755,6 +933,7 @@ message=historyReady
 console.error('Unable to calculate 24-hour PM2.5 average:',error);
 message='Unable to load PM2.5 history.';
 }
+// Store the result, render it, and refresh dependent sections
 latestPm25Avg24h=average;
 pm25HistoryReady=historyReady;
 renderReading(valPm25Avg24h,latestPm25Avg24h,'µg/m³');
@@ -766,6 +945,10 @@ updateRecommendations(latestTelemetry);
 }
 }
 
+// =========================================================
+// INSIGHT LABELS
+// Display names, units and decimals for each metric in the insights card
+// =========================================================
 const INSIGHT_COPY={
 co2:{
 label:'CO₂',name:'CO₂',unit:' ppm',digits:0
@@ -778,6 +961,10 @@ label:'24-hour PM2.5',name:'24-hour PM2.5 average',unit:' µg/m³',digits:1
 }
 };
 
+// =========================================================
+// INSIGHT STYLES
+// Injects the colors for status words (normal / attention / critical) once
+// =========================================================
 function ensureInsightStyles(){
 if(document.getElementById('insight-level-style'))return;
 const st=document.createElement('style');
@@ -790,7 +977,13 @@ st.textContent=
 document.head.appendChild(st);
 }
 
+// =========================================================
+// CONTENT RENDERING HELPERS
+// Builds the HTML blocks used by insights and recommendations
+// =========================================================
 const statusTag=(state,text)=>'<span class="ins-s '+state+'">'+text+'</span>';
+
+// Splits "text ... source: xyz" into body and source
 function splitSource(text){
 const match=String(text||'').match(/^(.*?)(?:\s+)?source:\s*(.+)$/i);
 return match
@@ -798,6 +991,7 @@ return match
 :{body:String(text||''),source:''};
 }
 
+// One content card: heading, paragraph, and optional source line
 const contentLine=(label,body)=>{
 const content=splitSource(body);
 return'<div class="content-item">'+
@@ -807,12 +1001,18 @@ return'<div class="content-item">'+
 '</div>';
 };
 
+// Insight card: label + colored status + scientific explanation
 const insightLine=(label,tag,reading,meaning)=>{
 const scientific=splitSource(meaning);
 return contentLine(escapeHtml(label)+' — '+tag,[reading,scientific.body].filter(Boolean).join(' ')+
 (scientific.source?' source: '+scientific.source:''));
 };
 
+// =========================================================
+// SCIENTIFIC CONTENT STORAGE + ALIASES
+// Firebase paths for insight/recommendation text and the key names
+// that map to each metric and status
+// =========================================================
 const SCIENTIFIC_CONTENT_PATHS={
 insight:'/Infos/insight',
 recommendations:'/Infos/actionableRecommendation'
@@ -823,12 +1023,14 @@ insight:{co2:{},voc:{},pm25:{}},
 recommendations:{co2:{},voc:{},pm25:{}}
 };
 
+// Alternative metric key names that may appear in Firebase
 const contentMetricAliases={
 co2:['co2'],
 voc:['voc','vocIdx'],
 pm25:['pm25','pm','pm25avg','pm2p5_WHO24hAQG']
 };
 
+// Alternative status key names that may appear in Firebase
 const contentStatusAliases={
 harmless:['normal','harmless'],
 elevated:['elevated'],
@@ -840,6 +1042,12 @@ within_who_24_hour_aqg:['within_WHO24hAQG','within_who_24_hour_aqg'],
 above_who_24_hour_aqg:['above_WHO24hAQG','above_who_24_hour_aqg']
 };
 
+// =========================================================
+// SCIENTIFIC CONTENT NORMALIZATION
+// Cleans Firebase content into { metric: { status: text } }
+// =========================================================
+
+// Reads text from a string or an object, and appends its source if present
 function scientificContentValue(value){
 if(typeof value==='string')return value;
 if(!value||typeof value!=='object')return undefined;
@@ -851,6 +1059,7 @@ return typeof source==='string'&&source.trim()
 :text;
 }
 
+// Matches a key to a known status using the alias table
 function canonicalContentStatus(key){
 const normalized=key.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase();
 for(const [state,aliases] of Object.entries(contentStatusAliases)){
@@ -859,6 +1068,7 @@ if(aliases.some(alias=>alias.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase()===
 return undefined;
 }
 
+// Matches a prefixed key (e.g. "co2_normal") to the exact status for that metric
 function canonicalContentKey(metric,key){
 const normalized=key.replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase();
 const suffix=normalized.replace(/^.*?_/, '');
@@ -879,6 +1089,7 @@ if(suffix==='above_who24h_aqg'||suffix==='above_who_24_hour_aqg')return'above_wh
 return undefined;
 }
 
+// Converts a firmware status key into the key used in Firebase content
 function contentStatusKey(metric,status){
 if(metric==='co2'&&status.key==='normal')return'harmless';
 if(metric==='voc'&&status.key==='baseline')return'normal_baseline';
@@ -887,17 +1098,20 @@ if(metric==='pm25avg'&&status.key==='above_who_24_hour_aqg')return'above_who_24_
 return status.key;
 }
 
+// Builds the final { co2, voc, pm25 } content object from raw Firebase data
 function normalizeScientificContent(remote){
 const normalized={co2:{},voc:{},pm25:{}};
 if(!remote||typeof remote!=='object')return normalized;
 
 Object.entries(contentMetricAliases).forEach(([metric,aliases])=>{
+// Collect groups by exact alias name and by prefixed keys
 const groups=aliases.map(alias=>remote[alias]).filter(group=>group&&typeof group==='object');
 Object.entries(remote).forEach(([key,value])=>{
 if(aliases.some(alias=>key.toLowerCase().startsWith(alias.toLowerCase()+'_'))){
 groups.push({[key]:value});
 }
 });
+// Save the text under its exact status key and general status
 groups.forEach(group=>{
 Object.entries(group).forEach(([key,value])=>{
 const exactStatus=canonicalContentKey(metric,key);
@@ -913,6 +1127,10 @@ if(status&&!normalized[metric][status])normalized[metric][status]=text;
 return normalized;
 }
 
+// =========================================================
+// UPDATE INSIGHTS CARD
+// Builds one insight block per metric using its current firmware status
+// =========================================================
 function updateInsights(data){
 if(!data||!insightText)return;
 ensureInsightStyles();
@@ -923,6 +1141,7 @@ const lines=[];
 ['pm25avg',latestPm25Avg24h]
 ].forEach(([key,value])=>{
 const copy=INSIGHT_COPY[key];
+// Hide the PM2.5 insight until 24 hours of history exist
 if(key==='pm25avg'&&!pm25HistoryReady)return;
 const status=key==='pm25avg'
 ?getPm25AverageStatus()
@@ -940,18 +1159,24 @@ escapeHtml(reading),
 meaning
 ));
 });
+// Placeholder while PM2.5 history is still being collected
 if(!pm25HistoryReady){
 lines.push('<div class="content-item"><strong>WHO PM2.5 24-hour AQG:</strong><p>Collecting PM2.5 data. The insights will appear after a full 24 hours of history.</p></div>');
 }
 insightText.innerHTML=lines.length?lines.join(''):'<div>Waiting for telemetry data...</div>';
 }
 
+// =========================================================
+// LIVE TELEMETRY LISTENER
+// Runs every time the device sends new data to Firebase
+// =========================================================
 onValue(ref(db,aeroCubePath+'/telemetry'),snapshot=>{
 const data=snapshot.val();
 if(!data){clearStaleSensorData();return;}
 latestTelemetry=data;
 renderTelemetryReadings(data);
 updateSensorStatuses(data);
+// Check each metric and send alerts if needed
 [
 ['co2',toNum(data.co2),' ppm'],
 ['voc',toNum(data.VOCidx),''],
@@ -974,6 +1199,10 @@ updatePm25Average24h();
 if(window.lucide)lucide.createIcons();
 });
 
+// =========================================================
+// DEVICE METADATA LISTENER
+// Tracks the device's last-seen time and refreshes the connection status
+// =========================================================
 let latestLastSeen=null;
 
 onValue(ref(db,aeroCubePath+'/metadata'),snapshot=>{
@@ -982,10 +1211,15 @@ latestLastSeen=meta?meta.lastSeen:null;
 updateDeviceConnectionStatus(latestLastSeen);
 });
 
+// Re-check the connection every 15 seconds (detects when data stops)
 setInterval(()=>{
 updateDeviceConnectionStatus(latestLastSeen);
 },15000);
 
+// =========================================================
+// RECOMMENDATION SETTINGS
+// Firebase paths and default (empty) recommendation structure
+// =========================================================
 const RECOMMENDATIONS_PATHS=[
 aeroCubePath+'/settings/recommendations',
 aeroCubePath+'/settings/recommendation'
@@ -995,6 +1229,10 @@ const DEFAULT_RECOMMENDATIONS={co2:{},voc:{},pm25:{}};
 
 let recommendationSettings=DEFAULT_RECOMMENDATIONS;
 
+// =========================================================
+// RECOMMENDATION NORMALIZATION
+// Accepts a string or an object (text/description/recommendation) and merges groups
+// =========================================================
 function normalizeRecommendationValue(value){
 if(typeof value==='string')return value;
 if(value&&typeof value==='object'){
@@ -1017,6 +1255,7 @@ if(value)merged[key]=value;
 return merged;
 }
 
+// Builds the final { co2, voc, pm25 } recommendations from all remote sources
 function normalizeRecommendations(remote){
 if(!remote||typeof remote!=='object')return {co2:{},voc:{},pm25:{}};
 
@@ -1037,6 +1276,10 @@ pm25:mergeRecommendationGroup(DEFAULT_RECOMMENDATIONS.pm25,normalized.pm25)
 };
 }
 
+// =========================================================
+// RECOMMENDATION SOURCES MERGING
+// Three Firebase sources are merged together (deep merge)
+// =========================================================
 const remoteRecommendations=[null,null,null];
 
 function mergeRemoteContent(base,addition){
@@ -1052,6 +1295,7 @@ merged[key]=value;
 return merged;
 }
 
+// Combine all sources, store them, and refresh the recommendations card
 function applyRecommendationSettings(){
 const remote=remoteRecommendations.reduce((merged,current)=>mergeRemoteContent(merged,current),{});
 recommendationSettings=normalizeRecommendations(remote);
@@ -1061,6 +1305,10 @@ updateRecommendations(latestTelemetry);
 }
 }
 
+// =========================================================
+// FIREBASE LISTENERS FOR RECOMMENDATIONS + INSIGHTS CONTENT
+// Re-render when any of these paths change
+// =========================================================
 onValue(ref(db,RECOMMENDATIONS_PATHS[0]),snapshot=>{
 remoteRecommendations[0]=snapshot.val();
 applyRecommendationSettings();
@@ -1083,6 +1331,10 @@ updateInsights(latestTelemetry);
 }
 });
 
+// =========================================================
+// RECOMMENDATION LOOKUP
+// Finds the recommendation text matching a metric's current status
+// =========================================================
 function getSensorRecommendation(data,metric,group){
 const status=metric==='pm25avg'
 ?getPm25AverageStatus()
@@ -1096,6 +1348,7 @@ recommendationSettings[group][status.tone];
 return{...status,text};
 }
 
+// Builds one recommendation card with a colored status label
 function recommendationLine(label,text,tone){
 const separator=label.indexOf(' — ');
 const metricLabel=separator<0?label:label.slice(0,separator);
@@ -1105,6 +1358,10 @@ const styledLabel=escapeHtml(metricLabel)+
 return contentLine(styledLabel,text);
 }
 
+// =========================================================
+// UPDATE RECOMMENDATIONS CARD
+// Shows recommendations for CO2, VOC and (once ready) 24-hour PM2.5
+// =========================================================
 function updateRecommendations(data){
 if(!recContent||!data)return;
 const metrics=[
@@ -1116,14 +1373,35 @@ const lines=metrics.map(([metric,group,label])=>{
 const recommendation=getSensorRecommendation(data,metric,group);
 return recommendationLine(label+' — '+recommendation.label,recommendation.text,recommendation.tone);
 });
+// Placeholder while PM2.5 history is still being collected
 if(!pm25HistoryReady){
 lines.push('<div class="content-item"><strong>WHO PM2.5 24-hour AQG:</strong><p>Collecting PM2.5 data. The recommendation will appear after a full 24 hours of history.</p></div>');
 }
 recContent.innerHTML=lines.join('');
 }
 
+// =========================================================
+// INITIAL PM2.5 LOAD + HISTORY LISTENER
+// Calculates the 24-hour average on load and whenever history changes
+// =========================================================
 updatePm25Average24h();
 
 onValue(ref(db,aeroCubePath+'/history'),()=>{
 updatePm25Average24h();
 });
+
+// =========================================================
+// DASHBOARD CLOCK
+// Shows the current local time and date, updated every second
+// =========================================================
+const clockTime=document.getElementById('clock-time');
+const clockDate=document.getElementById('clock-date');
+
+function updateClock(){
+const now=new Date();
+if(clockTime)clockTime.textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+if(clockDate)clockDate.textContent=now.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+
+updateClock();
+setInterval(updateClock,1000);
